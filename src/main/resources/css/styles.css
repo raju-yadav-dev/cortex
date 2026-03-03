@@ -186,17 +186,18 @@
 }
 
 .window-root.theme-dark .send-button {
-    -fx-background-color: #f84f79;
-    -fx-text-fill: #ffffff;
-    -fx-effect: dropshadow(gaussian, rgba(248, 79, 121, 0.35), 12, 0.24, 0, 3);
+    -fx-background-color: rgba(148, 163, 184, 0.14);
+    -fx-border-color: rgba(148, 163, 184, 0.3);
+    -fx-text-fill: #e2e8f0;
+    -fx-effect: null;
 }
 
 .window-root.theme-dark .send-button:hover {
-    -fx-background-color: #ff6f95;
+    -fx-background-color: rgba(148, 163, 184, 0.24);
 }
 
 .window-root.theme-dark .send-button:pressed {
-    -fx-background-color: #df3e67;
+    -fx-background-color: rgba(148, 163, 184, 0.32);
 }
 
 /* ================= LIGHT THEME ================= */
@@ -390,16 +391,17 @@
 }
 
 .window-root.theme-light .send-button {
-    -fx-background-color: rgba(141, 120, 198, 0.18);
-    -fx-text-fill: #6f59a8;
+    -fx-background-color: rgba(100, 116, 139, 0.12);
+    -fx-border-color: rgba(100, 116, 139, 0.24);
+    -fx-text-fill: #334155;
 }
 
 .window-root.theme-light .send-button:hover {
-    -fx-background-color: rgba(141, 120, 198, 0.26);
+    -fx-background-color: rgba(100, 116, 139, 0.2);
 }
 
 .window-root.theme-light .send-button:pressed {
-    -fx-background-color: rgba(141, 120, 198, 0.34);
+    -fx-background-color: rgba(100, 116, 139, 0.28);
 }
 
 /* Light mode blob gradient background */
@@ -420,6 +422,7 @@
 .app-shell.maximized {
     -fx-background-radius: 0;
     -fx-border-radius: 0;
+    -fx-effect: null;
 }
 
 /* ================= TITLE BAR / WINDOW CONTROLS ================= */
@@ -641,8 +644,8 @@
 
 /* History list rows like "New Chat" */
 .chat-history-list .list-cell {
-    -fx-alignment: center;
-    -fx-text-alignment: center;
+    -fx-alignment: center-left;
+    -fx-text-alignment: left;
     -fx-padding: 0;
     -fx-pref-height: 42;
 }
@@ -764,9 +767,591 @@
     -fx-line-spacing: 1px;
 }
 
+.message-markdown {
+    -fx-fill-width: true;
+}
+
+.message-flow {
+    -fx-line-spacing: 2px;
+}
+
+.message-flow Text {
+    -fx-fill: -app-text-primary;
+    -fx-font-size: 14px;
+}
+
+.user-bubble .message-flow Text {
+    -fx-fill: #1f2557;
+}
+
+.message-heading Text {
+    -fx-font-weight: 700;
+}
+
+.message-heading-1 Text {
+    -fx-font-size: 20px;
+}
+
+.message-heading-2 Text {
+    -fx-font-size: 17px;
+}
+
+.message-heading-3 Text {
+    -fx-font-size: 15px;
+}
+
+.message-list-item {
+    -fx-padding: 0 0 0 2;
+}
+
+.message-list-marker {
+    -fx-fill: -app-text-secondary;
+    -fx-font-weight: 700;
+}
+
+.message-inline-bold {
+    -fx-font-weight: 700;
+}
+
+.message-inline-italic {
+    -fx-font-style: italic;
+}
+
+.message-inline-code {
+    -fx-font-family: "Consolas", "JetBrains Mono", monospace;
+    -fx-fill: #93c5fd;
+}
+
+.message-code-block {
+    -fx-background-color: rgba(17, 24, 39, 0.92);
+    -fx-background-radius: 10;
+    -fx-border-color: rgba(148, 163, 184, 0.28);
+    -fx-border-radius: 10;
+    -fx-padding: 8 10 10 10;
+}
+
+.code-language {
+    -fx-text-fill: #93c5fd;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 0 0 2 0;
+}
+
+.message-code-header {
+    -fx-alignment: center-left;
+}
+
+.message-code-copy {
+    -fx-background-color: rgba(148, 163, 184, 0.18);
+    -fx-text-fill: #e2e8f0;
+    -fx-background-radius: 6;
+    -fx-border-color: rgba(148, 163, 184, 0.32);
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 2 8 2 8;
+    -fx-cursor: hand;
+}
+
+.message-code-copy:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.28);
+}
+
+.message-code-copy:pressed {
+    -fx-background-color: rgba(148, 163, 184, 0.36);
+}
+
+.window-root.theme-dark .message-code-run {
+    -fx-background-color: rgba(16, 185, 129, 0.2);
+    -fx-border-color: rgba(16, 185, 129, 0.45);
+    -fx-text-fill: #d1fae5;
+}
+
+.window-root.theme-dark .message-code-run:hover {
+    -fx-background-color: rgba(16, 185, 129, 0.3);
+}
+
+.window-root.theme-dark .message-code-run:pressed {
+    -fx-background-color: rgba(16, 185, 129, 0.38);
+}
+
+.window-root.theme-dark .message-code-run:disabled {
+    -fx-opacity: 0.6;
+    -fx-background-color: rgba(148, 163, 184, 0.18);
+    -fx-border-color: rgba(148, 163, 184, 0.32);
+    -fx-text-fill: #9ca3af;
+}
+
+.window-root.theme-light .message-code-run {
+    -fx-background-color: rgba(16, 185, 129, 0.16);
+    -fx-border-color: rgba(16, 185, 129, 0.35);
+    -fx-text-fill: #065f46;
+}
+
+.window-root.theme-light .message-code-run:hover {
+    -fx-background-color: rgba(16, 185, 129, 0.22);
+}
+
+.window-root.theme-light .message-code-run:pressed {
+    -fx-background-color: rgba(16, 185, 129, 0.28);
+}
+
+.window-root.theme-light .message-code-run:disabled {
+    -fx-opacity: 0.65;
+    -fx-background-color: rgba(148, 163, 184, 0.14);
+    -fx-border-color: rgba(148, 163, 184, 0.24);
+    -fx-text-fill: #64748b;
+}
+
+.message-code-stop {
+    -fx-min-width: 22;
+    -fx-pref-width: 22;
+    -fx-min-height: 22;
+    -fx-pref-height: 22;
+    -fx-padding: 0;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+}
+
+.window-root.theme-dark .message-code-stop {
+    -fx-background-color: rgba(239, 68, 68, 0.16);
+    -fx-border-color: rgba(239, 68, 68, 0.4);
+    -fx-text-fill: #fecaca;
+}
+
+.window-root.theme-dark .message-code-stop:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.24);
+}
+
+.window-root.theme-dark .message-code-stop:pressed {
+    -fx-background-color: rgba(239, 68, 68, 0.34);
+}
+
+.window-root.theme-light .message-code-stop {
+    -fx-background-color: rgba(239, 68, 68, 0.12);
+    -fx-border-color: rgba(239, 68, 68, 0.28);
+    -fx-text-fill: #991b1b;
+}
+
+.window-root.theme-light .message-code-stop:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.18);
+}
+
+.window-root.theme-light .message-code-stop:pressed {
+    -fx-background-color: rgba(239, 68, 68, 0.24);
+}
+
+.message-code {
+    -fx-font-family: "Consolas", "JetBrains Mono", monospace;
+    -fx-font-size: 12px;
+    -fx-background-color: transparent;
+    -fx-control-inner-background: transparent;
+    -fx-text-fill: #e2e8f0;
+    -fx-highlight-fill: rgba(59, 130, 246, 0.4);
+    -fx-highlight-text-fill: #ffffff;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.message-code .content,
+.message-code .viewport,
+.message-code .scroll-pane,
+.message-code .scroll-pane .viewport,
+.message-code .scroll-pane .content {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+.window-root.theme-light .message-code-block {
+    -fx-background-color: rgba(220, 228, 242, 0.68);
+    -fx-border-color: rgba(145, 160, 190, 0.42);
+}
+
+.window-root.theme-light .message-code {
+    -fx-text-fill: #1e293b;
+}
+
+.window-root.theme-light .message-inline-code {
+    -fx-fill: #334155;
+}
+
+.window-root.theme-light .message-code-copy {
+    -fx-text-fill: #1e293b;
+    -fx-background-color: rgba(100, 116, 139, 0.15);
+    -fx-border-color: rgba(100, 116, 139, 0.28);
+}
+
+.messages-scroll .scroll-bar:vertical,
+.message-code .scroll-bar:vertical,
+.list-view .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 11;
+    -fx-padding: 2;
+}
+
+.messages-scroll .scroll-bar:horizontal,
+.message-code .scroll-bar:horizontal,
+.list-view .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 11;
+    -fx-padding: 2;
+}
+
+.messages-scroll .scroll-bar:vertical .track,
+.message-code .scroll-bar:vertical .track,
+.list-view .scroll-bar:vertical .track,
+.messages-scroll .scroll-bar:horizontal .track,
+.message-code .scroll-bar:horizontal .track,
+.list-view .scroll-bar:horizontal .track {
+    -fx-background-color: rgba(17, 24, 39, 0.42);
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.messages-scroll .scroll-bar:vertical .thumb,
+.message-code .scroll-bar:vertical .thumb,
+.list-view .scroll-bar:vertical .thumb,
+.messages-scroll .scroll-bar:horizontal .thumb,
+.message-code .scroll-bar:horizontal .thumb,
+.list-view .scroll-bar:horizontal .thumb {
+    -fx-background-color: rgba(148, 163, 184, 0.72);
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.messages-scroll .scroll-bar:vertical .thumb:hover,
+.message-code .scroll-bar:vertical .thumb:hover,
+.list-view .scroll-bar:vertical .thumb:hover,
+.messages-scroll .scroll-bar:horizontal .thumb:hover,
+.message-code .scroll-bar:horizontal .thumb:hover,
+.list-view .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: rgba(176, 189, 210, 0.86);
+}
+
+.messages-scroll .scroll-bar:vertical .increment-button,
+.messages-scroll .scroll-bar:vertical .decrement-button,
+.messages-scroll .scroll-bar:vertical .increment-arrow,
+.messages-scroll .scroll-bar:vertical .decrement-arrow,
+.message-code .scroll-bar:vertical .increment-button,
+.message-code .scroll-bar:vertical .decrement-button,
+.message-code .scroll-bar:vertical .increment-arrow,
+.message-code .scroll-bar:vertical .decrement-arrow,
+.list-view .scroll-bar:vertical .increment-button,
+.list-view .scroll-bar:vertical .decrement-button,
+.list-view .scroll-bar:vertical .increment-arrow,
+.list-view .scroll-bar:vertical .decrement-arrow,
+.messages-scroll .scroll-bar:horizontal .increment-button,
+.messages-scroll .scroll-bar:horizontal .decrement-button,
+.messages-scroll .scroll-bar:horizontal .increment-arrow,
+.messages-scroll .scroll-bar:horizontal .decrement-arrow,
+.message-code .scroll-bar:horizontal .increment-button,
+.message-code .scroll-bar:horizontal .decrement-button,
+.message-code .scroll-bar:horizontal .increment-arrow,
+.message-code .scroll-bar:horizontal .decrement-arrow,
+.list-view .scroll-bar:horizontal .increment-button,
+.list-view .scroll-bar:horizontal .decrement-button,
+.list-view .scroll-bar:horizontal .increment-arrow,
+.list-view .scroll-bar:horizontal .decrement-arrow {
+    -fx-padding: 0;
+    -fx-opacity: 0;
+    -fx-background-color: transparent;
+}
+
 /* ================= COMPOSER / INPUT ================= */
 .composer-host {
     -fx-background-color: transparent;
+    -fx-spacing: 10;
+}
+
+.chat-split-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.chat-split-pane > .split-pane-divider {
+    -fx-padding: 0 1 0 1;
+    -fx-background-color: rgba(148, 163, 184, 0.26);
+}
+
+.terminal-pane {
+    -fx-background-color: rgba(10, 14, 28, 0.9);
+    -fx-border-color: rgba(148, 163, 184, 0.35);
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 8 10 10 10;
+    -fx-spacing: 8;
+    -fx-min-width: 280;
+    -fx-pref-width: 360;
+    -fx-max-width: 520;
+}
+
+.terminal-header {
+    -fx-background-color: transparent;
+}
+
+.terminal-dock-group {
+    -fx-spacing: 4;
+    -fx-padding: 2 6 2 6;
+    -fx-background-color: rgba(15, 23, 42, 0.42);
+    -fx-background-radius: 999;
+}
+
+.terminal-dock-button {
+    -fx-min-width: 24;
+    -fx-pref-width: 24;
+    -fx-min-height: 22;
+    -fx-pref-height: 22;
+    -fx-padding: 0;
+    -fx-alignment: center;
+    -fx-content-display: graphic-only;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-background-color: rgba(148, 163, 184, 0.12);
+    -fx-border-color: rgba(148, 163, 184, 0.3);
+}
+
+.terminal-dock-button:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.24);
+}
+
+.terminal-dock-button-selected {
+    -fx-background-color: rgba(59, 130, 246, 0.28);
+    -fx-border-color: rgba(59, 130, 246, 0.52);
+}
+
+.terminal-dock-icon {
+    -fx-min-width: 12;
+    -fx-pref-width: 12;
+    -fx-max-width: 12;
+    -fx-min-height: 10;
+    -fx-pref-height: 10;
+    -fx-max-height: 10;
+}
+
+.terminal-dock-icon-frame {
+    -fx-min-width: 12;
+    -fx-pref-width: 12;
+    -fx-max-width: 12;
+    -fx-min-height: 10;
+    -fx-pref-height: 10;
+    -fx-max-height: 10;
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(226, 232, 240, 0.78);
+    -fx-border-width: 1;
+    -fx-border-radius: 2;
+}
+
+.terminal-dock-icon-panel {
+    -fx-background-color: rgba(203, 213, 225, 0.82);
+    -fx-background-radius: 1;
+}
+
+.terminal-dock-button-selected .terminal-dock-icon-frame {
+    -fx-border-color: #eff6ff;
+}
+
+.terminal-dock-button-selected .terminal-dock-icon-panel {
+    -fx-background-color: #eff6ff;
+}
+
+.window-root.theme-dark .terminal-dock-button {
+    -fx-background-color: rgba(148, 163, 184, 0.12);
+    -fx-border-color: rgba(148, 163, 184, 0.3);
+}
+
+.window-root.theme-dark .terminal-dock-button:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.24);
+}
+
+.window-root.theme-dark .terminal-dock-button-selected {
+    -fx-background-color: rgba(59, 130, 246, 0.28);
+    -fx-border-color: rgba(59, 130, 246, 0.52);
+}
+
+.window-root.theme-dark .terminal-dock-group {
+    -fx-background-color: rgba(15, 23, 42, 0.42);
+}
+
+.window-root.theme-dark .terminal-dock-icon-frame {
+    -fx-border-color: rgba(226, 232, 240, 0.78);
+}
+
+.window-root.theme-dark .terminal-dock-icon-panel {
+    -fx-background-color: rgba(203, 213, 225, 0.82);
+}
+
+.window-root.theme-dark .terminal-dock-button-selected .terminal-dock-icon-frame {
+    -fx-border-color: #eff6ff;
+}
+
+.window-root.theme-dark .terminal-dock-button-selected .terminal-dock-icon-panel {
+    -fx-background-color: #eff6ff;
+}
+
+.terminal-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #cbd5e1;
+}
+
+.terminal-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94a3b8;
+}
+
+.terminal-clear-button {
+    -fx-background-color: rgba(148, 163, 184, 0.14);
+    -fx-border-color: rgba(148, 163, 184, 0.3);
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #e2e8f0;
+    -fx-font-size: 11px;
+    -fx-padding: 3 10 3 10;
+}
+
+.terminal-clear-button:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.24);
+}
+
+.terminal-close-button {
+    -fx-min-width: 22;
+    -fx-pref-width: 22;
+    -fx-min-height: 22;
+    -fx-pref-height: 22;
+    -fx-padding: 0;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-background-color: rgba(239, 68, 68, 0.16);
+    -fx-border-color: rgba(239, 68, 68, 0.4);
+    -fx-text-fill: #fecaca;
+}
+
+.terminal-close-button:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.24);
+}
+
+.terminal-toggle-button {
+    -fx-min-width: 42;
+    -fx-pref-width: 42;
+    -fx-min-height: 36;
+    -fx-pref-height: 36;
+    -fx-font-family: "Consolas", "JetBrains Mono", monospace;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 0;
+}
+
+.terminal-output.text-area {
+    -fx-font-family: "Consolas", "JetBrains Mono", monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: #eef2ff;
+    -fx-background-color: rgba(40, 48, 99, 0.92);
+    -fx-control-inner-background: rgba(40, 48, 99, 0.92);
+    -fx-highlight-fill: rgba(59, 130, 246, 0.45);
+    -fx-highlight-text-fill: #ffffff;
+    -fx-border-color: rgba(148, 163, 184, 0.24);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8;
+}
+
+.terminal-output.text-area .content {
+    -fx-background-color: rgba(40, 48, 99, 0.92);
+    -fx-background-insets: 0;
+}
+
+.terminal-output .scroll-bar:vertical,
+.terminal-output .scroll-bar:horizontal,
+.terminal-output .scroll-bar:vertical .track,
+.terminal-output .scroll-bar:horizontal .track,
+.terminal-output .scroll-bar:vertical .thumb,
+.terminal-output .scroll-bar:horizontal .thumb {
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-max-width: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.window-root.theme-light .terminal-pane {
+    -fx-background-color: rgba(236, 229, 242, 0.92);
+    -fx-border-color: rgba(130, 112, 162, 0.28);
+}
+
+.window-root.theme-light .chat-split-pane > .split-pane-divider {
+    -fx-background-color: rgba(130, 112, 162, 0.26);
+}
+
+.window-root.theme-light .terminal-title {
+    -fx-text-fill: #3f2d57;
+}
+
+.window-root.theme-light .terminal-status {
+    -fx-text-fill: rgba(73, 58, 92, 0.72);
+}
+
+.window-root.theme-light .terminal-dock-button {
+    -fx-background-color: rgba(100, 116, 139, 0.1);
+    -fx-border-color: rgba(100, 116, 139, 0.22);
+}
+
+.window-root.theme-light .terminal-dock-button:hover {
+    -fx-background-color: rgba(100, 116, 139, 0.18);
+}
+
+.window-root.theme-light .terminal-dock-button-selected {
+    -fx-background-color: rgba(99, 102, 241, 0.2);
+    -fx-border-color: rgba(99, 102, 241, 0.4);
+}
+
+.window-root.theme-light .terminal-dock-group {
+    -fx-background-color: rgba(148, 163, 184, 0.18);
+}
+
+.window-root.theme-light .terminal-dock-icon-frame {
+    -fx-border-color: rgba(71, 85, 105, 0.82);
+}
+
+.window-root.theme-light .terminal-dock-icon-panel {
+    -fx-background-color: rgba(71, 85, 105, 0.82);
+}
+
+.window-root.theme-light .terminal-dock-button-selected .terminal-dock-icon-frame {
+    -fx-border-color: #312e81;
+}
+
+.window-root.theme-light .terminal-dock-button-selected .terminal-dock-icon-panel {
+    -fx-background-color: #312e81;
+}
+
+.window-root.theme-light .terminal-clear-button {
+    -fx-background-color: rgba(100, 116, 139, 0.12);
+    -fx-border-color: rgba(100, 116, 139, 0.24);
+    -fx-text-fill: #334155;
+}
+
+.window-root.theme-light .terminal-close-button {
+    -fx-background-color: rgba(239, 68, 68, 0.12);
+    -fx-border-color: rgba(239, 68, 68, 0.26);
+    -fx-text-fill: #991b1b;
+}
+
+.window-root.theme-light .terminal-output.text-area {
+    -fx-text-fill: #2a1f35;
+    -fx-background-color: rgba(244, 239, 247, 0.96);
+    -fx-control-inner-background: rgba(244, 239, 247, 0.96);
+    -fx-border-color: rgba(130, 112, 162, 0.26);
+}
+
+.window-root.theme-light .terminal-output.text-area .content {
+    -fx-background-color: rgba(244, 239, 247, 0.96);
 }
 
 .input-shell {
@@ -853,29 +1438,32 @@
 
 /* ================= SEND BUTTON ================= */
 .send-button {
-    -fx-min-width: 36;
-    -fx-pref-width: 36;
+    -fx-min-width: 42;
+    -fx-pref-width: 42;
     -fx-min-height: 36;
     -fx-pref-height: 36;
-    -fx-background-radius: 999;
-    -fx-background-color: -app-accent-soft;
-    -fx-text-fill: #ffffff;
-    -fx-font-size: 16px;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-font-size: 12px;
     -fx-font-weight: 700;
     -fx-padding: 0;
     -fx-cursor: hand;
+    -fx-effect: null;
 }
 
 .send-button:hover {
-    -fx-background-color: -app-accent-hover;
+    -fx-effect: null;
 }
 
 .send-button:pressed {
-    -fx-background-color: -app-accent-pressed;
+    -fx-effect: null;
 }
 
 .send-button:disabled {
-    -fx-background-color: #334155;
+    -fx-background-color: rgba(100, 116, 139, 0.1);
+    -fx-border-color: rgba(100, 116, 139, 0.2);
     -fx-text-fill: #94a3b8;
     -fx-opacity: 1;
 }

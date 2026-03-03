@@ -4,34 +4,67 @@
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.example.chatbot.controller.ChatController" styleClass="chat-root">
-    <!-- ================= MESSAGE VIEWPORT ================= -->
     <center>
-        <VBox spacing="14" styleClass="chat-main" BorderPane.alignment="CENTER">
-            <padding>
-                <Insets top="16" right="22" bottom="10" left="22" />
-            </padding>
-            <!-- Subsection: Scrollable Message List -->
-            <ScrollPane fx:id="scrollPane" fitToWidth="true" styleClass="messages-scroll" VBox.vgrow="ALWAYS">
-                <VBox fx:id="messageBox" spacing="10" styleClass="messages-list">
-                    <padding>
-                        <Insets top="2" right="2" bottom="2" left="2" />
-                    </padding>
-                </VBox>
-            </ScrollPane>
-        </VBox>
-    </center>
+        <SplitPane fx:id="chatSplitPane" orientation="HORIZONTAL" styleClass="chat-split-pane">
+            <items>
+                <BorderPane styleClass="chat-content-shell">
+                    <!-- ================= MESSAGE VIEWPORT ================= -->
+                    <center>
+                        <VBox spacing="14" styleClass="chat-main" BorderPane.alignment="CENTER">
+                            <padding>
+                                <Insets top="16" right="22" bottom="10" left="22" />
+                            </padding>
+                            <!-- Subsection: Scrollable Message List -->
+                            <ScrollPane fx:id="scrollPane" fitToWidth="true" styleClass="messages-scroll" VBox.vgrow="ALWAYS">
+                                <VBox fx:id="messageBox" spacing="10" styleClass="messages-list">
+                                    <padding>
+                                        <Insets top="2" right="2" bottom="2" left="2" />
+                                    </padding>
+                                </VBox>
+                            </ScrollPane>
+                        </VBox>
+                    </center>
 
-    <!-- ================= COMPOSER ================= -->
-    <bottom>
-        <VBox styleClass="composer-host">
-            <padding>
-                <Insets top="4" right="22" bottom="18" left="22" />
-            </padding>
-            <!-- Subsection: Input + Send Action -->
-            <HBox fx:id="inputShell" styleClass="input-shell" alignment="CENTER_LEFT" spacing="10">
-                <TextArea fx:id="inputArea" prefRowCount="1" wrapText="true" promptText="Message Cortex..." HBox.hgrow="ALWAYS" />
-                <Button fx:id="sendButton" text="&#8593;" focusTraversable="false" styleClass="send-button" />
-            </HBox>
-        </VBox>
-    </bottom>
+                    <!-- ================= COMPOSER ================= -->
+                    <bottom>
+                        <VBox styleClass="composer-host">
+                            <padding>
+                                <Insets top="4" right="22" bottom="18" left="22" />
+                            </padding>
+                            <!-- Subsection: Input + Send Action -->
+                            <HBox fx:id="inputShell" styleClass="input-shell" alignment="CENTER_LEFT" spacing="10">
+                                <TextArea fx:id="inputArea" prefRowCount="1" wrapText="true" promptText="Message Cortex..." HBox.hgrow="ALWAYS" />
+                                <Button fx:id="terminalToggleButton" text=">_" focusTraversable="false" styleClass="terminal-toggle-button" />
+                                <Button fx:id="sendButton" text="&#8593;" focusTraversable="false" styleClass="send-button" />
+                            </HBox>
+                        </VBox>
+                    </bottom>
+                </BorderPane>
+
+                <!-- ================= RIGHT TERMINAL PANEL ================= -->
+                <VBox fx:id="terminalPane" styleClass="terminal-pane">
+                    <HBox styleClass="terminal-header" alignment="CENTER_LEFT" spacing="8">
+                        <Label text="Terminal" styleClass="terminal-title" />
+                        <HBox styleClass="terminal-dock-group" alignment="CENTER_LEFT" spacing="4">
+                            <Button fx:id="terminalDockLeftButton" text="" styleClass="terminal-dock-button" focusTraversable="false" />
+                            <Button fx:id="terminalDockRightButton" text="" styleClass="terminal-dock-button" focusTraversable="false" />
+                            <Button fx:id="terminalDockBottomButton" text="" styleClass="terminal-dock-button" focusTraversable="false" />
+                            <Button fx:id="terminalDockTopButton" text="" styleClass="terminal-dock-button" focusTraversable="false" />
+                        </HBox>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="terminalStatusLabel" text="Ready" styleClass="terminal-status" />
+                        <Button fx:id="terminalClearButton" text="Clear" styleClass="terminal-clear-button" focusTraversable="false" />
+                        <Button fx:id="terminalCloseButton" text="x" styleClass="terminal-close-button" focusTraversable="false" />
+                    </HBox>
+                    <TextArea fx:id="terminalOutputArea"
+                              editable="true"
+                              wrapText="true"
+                              prefRowCount="12"
+                              focusTraversable="true"
+                              styleClass="terminal-output"
+                              VBox.vgrow="ALWAYS" />
+                </VBox>
+            </items>
+        </SplitPane>
+    </center>
 </BorderPane>

@@ -21,8 +21,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
-import javafx.geometry.Rectangle2D;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -66,11 +64,6 @@ public class MainController {
     private double dragOffsetX;
     private double dragOffsetY;
     private Rectangle shellClip;
-    private boolean customMaximized;
-    private double restoreX;
-    private double restoreY;
-    private double restoreWidth;
-    private double restoreHeight;
 
     // ================= INITIALIZATION =================
     @FXML
@@ -103,7 +96,9 @@ public class MainController {
     public void setStage(Stage stage) {
         this.stage = stage;
         if (stage != null) {
-            updateMaximizedClass(customMaximized);
+            stage.maximizedProperty().addListener((obs, oldValue, maximized) -> updateWindowChromeStateDeferred());
+            stage.fullScreenProperty().addListener((obs, oldValue, fullScreen) -> updateWindowChromeStateDeferred());
+            updateWindowChromeStateDeferred();
         }
     }
 
@@ -122,12 +117,13 @@ public class MainController {
                 return;
             }
 
-            if (customMaximized) {
+            if (stage.isMaximized()) {
                 double dragRatio = event.getSceneX() / Math.max(1.0, titleBar.getWidth());
-                restoreFromCustomMaximize();
-                updateMaximizedClass(false);
-                stage.setX(event.getScreenX() - stage.getWidth() * dragRatio);
-                stage.setY(event.getScreenY() - dragOffsetY);
+                stage.setMaximized(false);
+                Platform.runLater(() -> {
+                    stage.setX(event.getScreenX() - stage.getWidth() * dragRatio);
+                    stage.setY(event.getScreenY() - dragOffsetY);
+                });
                 return;
             }
 
@@ -193,59 +189,20 @@ public class MainController {
         if (stage == null) {
             return;
         }
-        if (customMaximized) {
-            restoreFromCustomMaximize();
-        } else {
-            applyCustomMaximize();
-        }
-        updateMaximizedClass(customMaximized);
-    }
-
-    private void applyCustomMaximize() {
-        if (stage == null || customMaximized) {
-            return;
-        }
-
-        restoreX = stage.getX();
-        restoreY = stage.getY();
-        restoreWidth = stage.getWidth();
-        restoreHeight = stage.getHeight();
-
-        Rectangle2D bounds = getVisualBoundsForStage();
-        // Expand from the window center to avoid jumping to the left edge
-        double centerX = stage.getX() + stage.getWidth() / 2.0;
-        double newWidth = bounds.getWidth();
-        double newHeight = bounds.getHeight();
-        double newX = Math.max(bounds.getMinX(), centerX - newWidth / 2.0);
-        double newY = bounds.getMinY();
-
-        stage.setWidth(newWidth);
-        stage.setHeight(newHeight);
-        stage.setX(newX);
-        stage.setY(newY);
-        customMaximized = true;
-    }
-
-    private void restoreFromCustomMaximize() {
-        if (stage == null || !customMaximized) {
-            return;
-        }
-        stage.setX(restoreX);
-        stage.setY(restoreY);
-        stage.setWidth(restoreWidth);
-        stage.setHeight(restoreHeight);
-        customMaximized = false;
-    }
-
-    private Rectangle2D getVisualBoundsForStage() {
-        return Screen.getScreensForRectangle(stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight())
-                .stream()
-                .findFirst()
-                .orElse(Screen.getPrimary())
-                .getVisualBounds();
+        stage.setMaximized(!stage.isMaximized());
+        updateWindowChromeStateDeferred();
     }
 
     // ================= MAXIMIZED CSS STATE =================
+    private void updateWindowChromeStateDeferred() {
+        Platform.runLater(() -> {
+            if (stage == null) {
+                return;
+            }
+            updateMaximizedClass(stage.isMaximized() || stage.isFullScreen());
+        });
+    }
+
     private void updateMaximizedClass(boolean maximized) {
         if (appShell == null || windowRoot == null) {
             return;
@@ -272,17 +229,9 @@ public class MainController {
         shellClip = new Rectangle();
         shellClip.setArcWidth(32);
         shellClip.setArcHeight(32);
+        shellClip.widthProperty().bind(appShell.widthProperty());
+        shellClip.heightProperty().bind(appShell.heightProperty());
         appShell.setClip(shellClip);
-
-        appShell.layoutBoundsProperty().addListener((obs, oldBounds, newBounds) -> {
-            shellClip.setWidth(newBounds.getWidth());
-            shellClip.setHeight(newBounds.getHeight());
-        });
-
-        Platform.runLater(() -> {
-            shellClip.setWidth(appShell.getWidth());
-            shellClip.setHeight(appShell.getHeight());
-        });
     }
 
     // ================= CONVERSATION ACTIONS =================
@@ -362,6 +311,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/chat.fxml"));
             Node chatPane = loader.load();
             ChatController controller = loader.getController();
+            controller.setChatService(chatService);
             controller.setConversation(conversation);
             controller.setOnConversationUpdated(chatList::refresh);
 

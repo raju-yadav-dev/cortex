@@ -61,10 +61,16 @@ ChatbotApp/
    ```
 
 ## Extending for Real AI API
-- Replace the mock logic in `ChatService.sendMessage()` with a call to your preferred AI provider (OpenAI, Azure, local model, etc.).
-- Keep the `Conversation` model unchanged; simply append the response from the API.
-- Consider making `ChatService` asynchronous (return `CompletableFuture<Message>`) and update UI with a loading indicator while waiting.
-- Add configuration for API keys and network handling in a separate `config` package or use environment variables.
+- The app now uses OpenAI Chat Completions from `ChatService` with asynchronous calls.
+- Set API key in `../app.properties` (outside `ai-project`):
+  ```properties
+  past_api=PASTE_YOUR_API_KEY_HERE
+  ```
+- You can also use environment variable `OPENAI_API_KEY` (takes priority over `past_api`).
+- Optional override path: set `APP_CONFIG_PATH` or JVM arg `-Dapp.config.path=...`.
+- Optional:
+  - `openai_model=gpt-4.1-mini`
+  - `openai_base_url=https://api.openai.com`
 
 ## Future Improvements
 - **Markdown Rendering**: integrate a library like `flexmark-java` and render in a `WebView` or custom control.

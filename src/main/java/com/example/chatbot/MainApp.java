@@ -45,16 +45,9 @@ public class MainApp extends Application {
         double maxStartupHeight = Math.max(480, visualBounds.getHeight());
         double minWidth = Math.min(960, maxStartupWidth);
         double minHeight = Math.min(620, maxStartupHeight);
-        double startupWidth = Math.min(1200, maxStartupWidth);
-        double startupHeight = Math.min(760, maxStartupHeight);
-        startupWidth = Math.max(minWidth, startupWidth);
-        startupHeight = Math.max(minHeight, startupHeight);
 
         primaryStage.setMinWidth(minWidth);
         primaryStage.setMinHeight(minHeight);
-        primaryStage.setWidth(startupWidth);
-        primaryStage.setHeight(startupHeight);
-        primaryStage.centerOnScreen();
 
         // ---- Connect Controller + Enable Border Resize ----
         controller.setStage(primaryStage);

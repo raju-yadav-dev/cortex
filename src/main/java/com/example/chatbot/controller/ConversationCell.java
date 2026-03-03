@@ -1,6 +1,7 @@
 package com.example.chatbot.controller;
 
 import com.example.chatbot.model.Conversation;
+import javafx.beans.binding.Bindings;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -22,6 +23,7 @@ import java.util.function.Consumer;
  * Cell that shows conversation title with inline rename and row options.
  */
 public class ConversationCell extends ListCell<Conversation> {
+    private static final double CHAT_ROW_MAX_WIDTH = 200;
     private final Consumer<Conversation> onDelete;
     private final Consumer<Conversation> onTogglePin;
     private TextField renameField;
@@ -92,6 +94,7 @@ public class ConversationCell extends ListCell<Conversation> {
         titleLabel.setWrapText(false);
         titleLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
         titleLabel.setEllipsisString("...");
+        titleLabel.setMinWidth(0);
         titleLabel.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(titleLabel, Priority.ALWAYS);
         return titleLabel;
@@ -112,6 +115,7 @@ public class ConversationCell extends ListCell<Conversation> {
                 event.consume();
             }
         });
+        field.setMinWidth(0);
         HBox.setHgrow(field, Priority.ALWAYS);
         return field;
     }
@@ -146,6 +150,9 @@ public class ConversationCell extends ListCell<Conversation> {
 
         HBox row = new HBox(8, titleNode, spacer, optionsButton);
         row.setAlignment(Pos.CENTER_LEFT);
+        row.setMinWidth(0);
+        row.prefWidthProperty().bind(Bindings.min(CHAT_ROW_MAX_WIDTH, Bindings.max(0, widthProperty().subtract(16))));
+        row.maxWidthProperty().bind(Bindings.min(CHAT_ROW_MAX_WIDTH, Bindings.max(0, widthProperty().subtract(16))));
         return row;
     }
 
