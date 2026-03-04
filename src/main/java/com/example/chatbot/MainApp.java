@@ -6,6 +6,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Cursor;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
@@ -37,10 +38,26 @@ public class MainApp extends Application {
         primaryStage.initStyle(StageStyle.TRANSPARENT);
         primaryStage.setTitle("Chatbot Desktop");
         primaryStage.setScene(scene);
+        var appIcon = getClass().getResource("/icon/Cortex.png");
+        if (appIcon != null) {
+            primaryStage.getIcons().add(new Image(appIcon.toExternalForm()));
+        } else {
+            var icoIcon = getClass().getResource("/icon/Cortex.ico");
+            if (icoIcon != null) {
+                primaryStage.getIcons().add(new Image(icoIcon.toExternalForm()));
+            }
+        }
         primaryStage.setResizable(true);
 
         // ---- Fit Initial Window Into Current Screen ----
         Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();
+        
+        // Set window to fill visual bounds (like maximized but without Windows border issues)
+        primaryStage.setX(visualBounds.getMinX());
+        primaryStage.setY(visualBounds.getMinY());
+        primaryStage.setWidth(visualBounds.getWidth());
+        primaryStage.setHeight(visualBounds.getHeight());
+        
         double maxStartupWidth = Math.max(640, visualBounds.getWidth());
         double maxStartupHeight = Math.max(480, visualBounds.getHeight());
         double minWidth = Math.min(960, maxStartupWidth);

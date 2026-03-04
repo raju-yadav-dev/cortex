@@ -13,6 +13,8 @@ import javafx.scene.control.MenuButton;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.Cursor;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -21,13 +23,23 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.geometry.Rectangle2D;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MainController {
+    private static final String DARK_THEME_CSS = "/styles/themes/Dark-themes/dark-purple/theme.css";
+    private static final String LIGHT_THEME_CSS = "/styles/themes/Light-themes/light/theme.css";
+    private static final Map<String, String> THEME_STYLESHEETS = Map.of(
+            "theme-dark", DARK_THEME_CSS,
+            "theme-light", LIGHT_THEME_CSS
+    );
+
     // ================= SIDEBAR + CONTENT NODES =================
     @FXML
     private VBox sidebar;
@@ -39,6 +51,8 @@ public class MainController {
     private VBox chatContainer;
     @FXML
     private HBox titleBar;
+    @FXML
+    private ImageView appIconView;
     @FXML
     private BorderPane appShell;
     @FXML
@@ -63,7 +77,9 @@ public class MainController {
     private Stage stage;
     private double dragOffsetX;
     private double dragOffsetY;
+        private Rectangle windowRootClip;
     private Rectangle shellClip;
+    private String activeThemeStylesheet;
 
     // ================= INITIALIZATION =================
     @FXML
@@ -83,6 +99,7 @@ public class MainController {
         applyRoundedClip();
         wireWindowButtons();
         wireThemeMenu();
+        loadTitleBarIcon();
 
         // ---- Default Theme + First Conversation ----
         applyTheme("theme-dark");
@@ -92,12 +109,34 @@ public class MainController {
         chatList.getSelectionModel().select(first);
     }
 
+    private void loadTitleBarIcon() {
+        if (appIconView == null) {
+            return;
+        }
+        try {
+            var resource = getClass().getResource("/icon/Cortex.png");
+            if (resource != null) {
+                appIconView.setImage(new Image(resource.toExternalForm()));
+                return;
+            }
+            var icoResource = getClass().getResource("/icon/Cortex.ico");
+            if (icoResource != null) {
+                appIconView.setImage(new Image(icoResource.toExternalForm()));
+            }
+        } catch (Exception ignored) {
+            // Keep UI stable even if icon resource is unavailable.
+        }
+    }
+
     // ================= STAGE BINDING =================
     public void setStage(Stage stage) {
         this.stage = stage;
         if (stage != null) {
             stage.maximizedProperty().addListener((obs, oldValue, maximized) -> updateWindowChromeStateDeferred());
             stage.fullScreenProperty().addListener((obs, oldValue, fullScreen) -> updateWindowChromeStateDeferred());
+            // Listen for window bounds changes to detect pseudo-maximized state
+            stage.widthProperty().addListener((obs, oldValue, newValue) -> updateWindowChromeStateDeferred());
+            stage.heightProperty().addListener((obs, oldValue, newValue) -> updateWindowChromeStateDeferred());
             updateWindowChromeStateDeferred();
         }
     }
@@ -199,8 +238,28 @@ public class MainController {
             if (stage == null) {
                 return;
             }
-            updateMaximizedClass(stage.isMaximized() || stage.isFullScreen());
+            boolean isMaximized = stage.isMaximized() || stage.isFullScreen() || isWindowFillingScreen();
+            updateMaximizedClass(isMaximized);
         });
+    }
+    
+    private boolean isWindowFillingScreen() {
+        if (stage == null) {
+            return false;
+        }
+        try {
+            Rectangle2D visualBounds = Screen.getScreensForRectangle(
+                stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight()
+            ).get(0).getVisualBounds();
+            
+            // Check if window is filling the screen (within 10px tolerance)
+            return Math.abs(stage.getX() - visualBounds.getMinX()) < 10 &&
+                   Math.abs(stage.getY() - visualBounds.getMinY()) < 10 &&
+                   Math.abs(stage.getWidth() - visualBounds.getWidth()) < 10 &&
+                   Math.abs(stage.getHeight() - visualBounds.getHeight()) < 10;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void updateMaximizedClass(boolean maximized) {
@@ -217,6 +276,10 @@ public class MainController {
         } else {
             appShell.getStyleClass().remove("maximized");
             windowRoot.getStyleClass().remove("maximized");
+                if (windowRootClip != null) {
+                    windowRootClip.setArcWidth(maximized ? 0 : 32);
+                    windowRootClip.setArcHeight(maximized ? 0 : 32);
+                }
         }
         if (shellClip != null) {
             shellClip.setArcWidth(maximized ? 0 : 32);
@@ -226,6 +289,15 @@ public class MainController {
 
     // ================= ROUNDED SHELL CLIP =================
     private void applyRoundedClip() {
+            // Clip windowRoot to prevent black corners in dark mode
+            windowRootClip = new Rectangle();
+            windowRootClip.setArcWidth(32);
+            windowRootClip.setArcHeight(32);
+            windowRootClip.widthProperty().bind(windowRoot.widthProperty());
+            windowRootClip.heightProperty().bind(windowRoot.heightProperty());
+            windowRoot.setClip(windowRootClip);
+        
+            // Clip appShell for consistent rounded corners
         shellClip = new Rectangle();
         shellClip.setArcWidth(32);
         shellClip.setArcHeight(32);
@@ -344,5 +416,30 @@ public class MainController {
         windowRoot.getStyleClass().add(themeClass);
         themeDarkItem.setSelected("theme-dark".equals(themeClass));
         themeLightItem.setSelected("theme-light".equals(themeClass));
+        applyThemeStylesheet(themeClass);
+    }
+
+    private void applyThemeStylesheet(String themeClass) {
+        String cssResourcePath = THEME_STYLESHEETS.get(themeClass);
+        if (cssResourcePath == null) {
+            return;
+        }
+        if (windowRoot.getScene() == null) {
+            Platform.runLater(() -> applyThemeStylesheet(themeClass));
+            return;
+        }
+
+        String stylesheet = getClass().getResource(cssResourcePath) != null
+                ? getClass().getResource(cssResourcePath).toExternalForm()
+                : null;
+        if (stylesheet == null) {
+            return;
+        }
+
+        if (activeThemeStylesheet != null) {
+            windowRoot.getScene().getStylesheets().remove(activeThemeStylesheet);
+        }
+        windowRoot.getScene().getStylesheets().add(stylesheet);
+        activeThemeStylesheet = stylesheet;
     }
 }

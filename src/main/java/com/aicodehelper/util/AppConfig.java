@@ -77,7 +77,13 @@ public final class AppConfig {
     // ========== THEME CONFIGURATION ==========
     public static final String DARK_MODE_CLASS = ""; // Default
     public static final String LIGHT_MODE_CLASS = "light-mode";
-    public static final String CSS_RESOURCE_PATH = "/styles/app.css";
+    public static final String CSS_PURPLE_THEME = "/styles/app.css";
+    public static final String CSS_GREEN_THEME = "/styles/app-green.css";
+    
+    // Theme Names
+    public static final String THEME_PURPLE_DARK = "Purple Dark";
+    public static final String THEME_GREEN_DARK = "Green Dark";
+    public static final String THEME_LIGHT = "Light Mode";
 
     // ========== LOGGING ==========
     public static final String LOG_LEVEL = "INFO"; // DEBUG, INFO, WARN, ERROR
@@ -94,6 +100,7 @@ public final class AppConfig {
     public static final String NEW_CHAT_BUTTON_TEXT = "Start New Chat";
     public static final String SEND_BUTTON_ICON = "↑";
     public static final String COPY_BUTTON_TEXT = "Copy";
+    public static final String THEME_BUTTON_TEXT = "Theme";
     public static final String THEME_BUTTON_LIGHT_TEXT = "Light";
     public static final String THEME_BUTTON_DARK_TEXT = "Dark";
 

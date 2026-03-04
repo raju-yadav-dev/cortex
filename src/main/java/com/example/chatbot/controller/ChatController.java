@@ -3,7 +3,9 @@ package com.example.chatbot.controller;
 import com.example.chatbot.model.Conversation;
 import com.example.chatbot.model.Message;
 import com.example.chatbot.service.ChatService;
+import com.example.chatbot.service.ExportService;
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
@@ -14,6 +16,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
@@ -28,11 +31,16 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
+import javafx.scene.control.Tooltip;
 
-import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,9 +66,17 @@ public class ChatController {
     @FXML
     private TextArea inputArea;
     @FXML
+    private HBox exportToastBanner;
+    @FXML
+    private Label exportToastLabel;
+    @FXML
+    private Button exportToastCloseButton;
+    @FXML
     private Button sendButton;
     @FXML
     private HBox inputShell;
+    @FXML
+    private MenuButton exportButton;
     @FXML
     private SplitPane chatSplitPane;
     @FXML
@@ -96,16 +112,18 @@ public class ChatController {
     private static final Pattern INLINE_MARKDOWN_PATTERN = Pattern.compile("(\\*\\*([^*]+)\\*\\*)|(`([^`]+)`)|(\\*([^*]+)\\*)");
     private static final Pattern PUBLIC_CLASS_PATTERN = Pattern.compile("\\bpublic\\s+class\\s+([A-Za-z_$][\\w$]*)\\b");
     private static final Pattern CLASS_PATTERN = Pattern.compile("\\bclass\\s+([A-Za-z_$][\\w$]*)\\b");
-    private static final long RUN_TIMEOUT_SECONDS = 45;
     private static final double TERMINAL_MIN_WIDTH = 280;
     private static final double TERMINAL_DEFAULT_WIDTH = 360;
     private static final double TERMINAL_MAX_WIDTH = 520;
+    private static final double TERMINAL_WINDOWED_WIDTH_BOOST = 10;
     private static final double TERMINAL_MIN_HEIGHT = 180;
     private static final double TERMINAL_DEFAULT_HEIGHT = 240;
     private static final double TERMINAL_MAX_HEIGHT = 420;
     private static final String TERMINAL_PROMPT_SUFFIX = "> ";
     private final BooleanProperty waitingForResponse = new SimpleBooleanProperty(false);
     private final Map<String, Boolean> runtimeAvailabilityCache = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> commandAvailabilityCache = new ConcurrentHashMap<>();
+    private PauseTransition exportToastTimer;
     private volatile RunningExecution activeExecution;
     private Path terminalWorkingDirectory = Path.of(System.getProperty("user.home"));
     private int terminalInputStartIndex;
@@ -134,6 +152,11 @@ public class ChatController {
         sendButton.setOnAction(e -> sendMessage());
 
         // ---- Enter To Send, Shift+Enter For Newline ----
+        inputArea.setWrapText(true);
+        Tooltip inputTooltip = new Tooltip("Enter to send\nShift+Enter for new line\nCtrl+C to copy selected text");
+        inputTooltip.setStyle("-fx-font-size: 11px;");
+        Tooltip.install(inputArea, inputTooltip);
+        
         inputArea.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER && !event.isShiftDown()) {
                 sendMessage();
@@ -150,6 +173,10 @@ public class ChatController {
                 inputShell.getStyleClass().remove("input-focused");
             }
         });
+
+        if (exportToastCloseButton != null) {
+            exportToastCloseButton.setOnAction(event -> hideNotificationBanner(true));
+        }
 
         if (terminalClearButton != null) {
             terminalClearButton.setOnAction(event -> clearTerminal());
@@ -313,7 +340,25 @@ public class ChatController {
         content.setMaxWidth(520);
         content.getStyleClass().add("message-text");
 
-        VBox bubble = new VBox(content);
+        // Add copy button for non-empty messages
+        Button copyButton = null;
+        if (msg.getContent() != null && !msg.getContent().trim().isEmpty()) {
+            copyButton = new Button("Copy");
+            copyButton.getStyleClass().add("message-copy-button");
+            copyButton.setFocusTraversable(false);
+            copyButton.setOnAction(event -> copyCodeToClipboard(msg.getContent()));
+        }
+
+        VBox bubble;
+        if (copyButton != null) {
+            VBox contentContainer = new VBox(4, content);
+            contentContainer.getStyleClass().add("message-content-container");
+            HBox buttonBar = new HBox(copyButton);
+            buttonBar.getStyleClass().add("message-button-bar");
+            bubble = new VBox(6, contentContainer, buttonBar);
+        } else {
+            bubble = new VBox(content);
+        }
         bubble.getStyleClass().add("message-bubble");
 
         Region spacer = new Region();
@@ -584,7 +629,8 @@ public class ChatController {
                 case "javascript" -> runWithInterpreter(code, ".js", resolveNodeCommand(), "Node.js", execution);
                 case "powershell" -> runWithInterpreter(code, ".ps1", resolvePowerShellCommand(), "PowerShell", execution);
                 case "bash" -> runWithInterpreter(code, ".sh", resolveBashCommand(), "Bash", execution);
-                case "c" -> runCSnippet(code, execution);
+                case "c" -> runCSnippet(code, false, execution);
+                case "cpp" -> runCSnippet(code, true, execution);
                 case "java" -> runJavaSnippet(code, execution);
                 default -> new RunResult(-1, "[Run] Unsupported language: " + language, false);
             };
@@ -646,26 +692,42 @@ public class ChatController {
         }
     }
 
-    private RunResult runCSnippet(String code, RunningExecution execution) throws IOException, InterruptedException {
-        List<String> compilerCommand = resolveCCompilerCommand();
+    private RunResult runCSnippet(String code, boolean isCpp, RunningExecution execution) throws IOException, InterruptedException {
+        List<String> compilerCommand = isCpp ? resolveCppCompiler() : resolveCCompiler();
+        String langLabel = isCpp ? "C++" : "C";
+        String compilerList = isCpp ? "g++/clang++/cl" : "gcc/clang/cc/tcc";
+        
         if (compilerCommand == null || compilerCommand.isEmpty()) {
-            return new RunResult(-1, "[Run] C compiler is not installed on this system (gcc/clang/cc/tcc).", false);
+            return new RunResult(-1, "[Run] " + langLabel + " compiler is not installed on this system (" + compilerList + ").", false);
         }
 
-        Path tempDir = Files.createTempDirectory("chat-c-run-");
+        Path tempDir = Files.createTempDirectory("chat-" + (isCpp ? "cpp" : "c") + "-run-");
         try {
-            Path sourceFile = tempDir.resolve("snippet.c");
+            String sourceExt = isCpp ? ".cpp" : ".c";
+            Path sourceFile = tempDir.resolve("snippet" + sourceExt);
             Path binaryFile = tempDir.resolve(isWindows() ? "snippet.exe" : "snippet.out");
             Files.writeString(sourceFile, code, StandardCharsets.UTF_8);
 
             List<String> compileCommand = new ArrayList<>(compilerCommand);
-            compileCommand.add(sourceFile.toAbsolutePath().toString());
-            compileCommand.add("-o");
-            compileCommand.add(binaryFile.toAbsolutePath().toString());
+            
+            // Add compiler-specific output flags
+            if (!compileCommand.isEmpty()) {
+                String compiler = compileCommand.get(0).toLowerCase();
+                if (compiler.equals("cl")) {
+                    // MSVC: cl source.c /Fe:output.exe
+                    compileCommand.add("/Fe:" + binaryFile.toAbsolutePath());
+                    compileCommand.add(sourceFile.toAbsolutePath().toString());
+                } else {
+                    // GCC/Clang: g++ source.cpp -o output
+                    compileCommand.add(sourceFile.toAbsolutePath().toString());
+                    compileCommand.add("-o");
+                    compileCommand.add(binaryFile.toAbsolutePath().toString());
+                }
+            }
 
             RunResult compileResult = runProcess(compileCommand, tempDir, execution);
             if (compileResult.exitCode() != 0) {
-                appendTerminalLine("[Compile] C compilation failed.");
+                appendTerminalLine("[Compile] " + langLabel + " compilation failed.");
                 return new RunResult(compileResult.exitCode(), "", true);
             }
 
@@ -683,12 +745,14 @@ public class ChatController {
 
         Process process = builder.start();
         execution.process = process;
+        execution.processInput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
 
         CompletableFuture<Void> outputPump = CompletableFuture.runAsync(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    appendTerminalLine(line);
+            try (InputStreamReader reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
+                char[] buffer = new char[4096];
+                int read;
+                while ((read = reader.read(buffer)) != -1) {
+                    appendTerminalRaw(new String(buffer, 0, read));
                 }
             } catch (IOException ex) {
                 if (!execution.cancelRequested && ex.getMessage() != null && !ex.getMessage().isBlank()) {
@@ -696,9 +760,6 @@ public class ChatController {
                 }
             }
         });
-
-        long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(RUN_TIMEOUT_SECONDS);
-        boolean timedOut = false;
 
         while (true) {
             if (execution.cancelRequested) {
@@ -708,21 +769,21 @@ public class ChatController {
             if (process.waitFor(120, TimeUnit.MILLISECONDS)) {
                 break;
             }
-            if (System.nanoTime() >= deadlineNanos) {
-                timedOut = true;
-                process.destroyForcibly();
-                break;
-            }
         }
 
         process.waitFor(2, TimeUnit.SECONDS);
         outputPump.join();
+        BufferedWriter processInput = execution.processInput;
+        if (processInput != null) {
+            try {
+                processInput.close();
+            } catch (IOException ignored) {
+                // Best-effort close for process stdin.
+            }
+        }
+        execution.processInput = null;
         execution.process = null;
 
-        if (timedOut) {
-            appendTerminalLine("[Run] Process timed out after " + RUN_TIMEOUT_SECONDS + " seconds.");
-            return new RunResult(-1, "", true);
-        }
         if (execution.cancelRequested) {
             return new RunResult(-1, "", true);
         }
@@ -750,13 +811,14 @@ public class ChatController {
             case "ps", "ps1", "pwsh" -> "powershell";
             case "shell", "sh", "zsh" -> "bash";
             case "c89", "c90", "c99", "c11", "c17", "c18" -> "c";
+            case "cpp", "c++", "cc", "cxx", "c++11", "c++14", "c++17", "c++20", "c++23" -> "cpp";
             default -> normalized;
         };
     }
 
     private boolean isRunnableLanguage(String language) {
         return switch (language) {
-            case "python", "javascript", "java", "powershell", "bash", "c" -> true;
+            case "python", "javascript", "java", "powershell", "bash", "c", "cpp" -> true;
             default -> false;
         };
     }
@@ -774,7 +836,8 @@ public class ChatController {
             case "javascript" -> resolveNodeCommand() != null;
             case "powershell" -> resolvePowerShellCommand() != null;
             case "bash" -> resolveBashCommand() != null;
-            case "c" -> resolveCCompilerCommand() != null;
+            case "c" -> resolveCCompiler() != null;
+            case "cpp" -> resolveCppCompiler() != null;
             case "java" -> isCommandAvailable("javac") && isCommandAvailable("java");
             default -> false;
         };
@@ -811,37 +874,61 @@ public class ChatController {
         return isCommandAvailable("bash") ? List.of("bash") : null;
     }
 
-    private List<String> resolveCCompilerCommand() {
-        if (isCommandAvailable("gcc")) {
-            return List.of("gcc");
-        }
-        if (isCommandAvailable("clang")) {
-            return List.of("clang");
-        }
-        if (isCommandAvailable("cc")) {
-            return List.of("cc");
-        }
-        if (isCommandAvailable("tcc")) {
-            return List.of("tcc");
+    private List<String> resolveCCompiler() {
+        // Try most common compilers first (in order of preference)
+        String[] compilers = isWindows() 
+            ? new String[]{"gcc", "clang", "cl", "tcc", "cc"}
+            : new String[]{"gcc", "clang", "cc", "tcc"};
+        
+        for (String compiler : compilers) {
+            if (isCommandAvailable(compiler)) {
+                return compiler.equals("cl") ? List.of("cl", "/TC") : List.of(compiler);
+            }
         }
         return null;
     }
 
-    private boolean isCommandAvailable(String commandName) {
-        List<String> probe = isWindows()
-                ? List.of("cmd", "/c", "where", commandName)
-                : List.of("sh", "-lc", "command -v " + commandName);
-        try {
-            Process process = new ProcessBuilder(probe).redirectErrorStream(true).start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                return false;
+    private List<String> resolveCppCompiler() {
+        // Try most common C++ compilers first
+        String[] compilers = isWindows()
+            ? new String[]{"g++", "clang++", "cl", "c++", "tcc"}
+            : new String[]{"g++", "clang++", "c++", "tcc"};
+        
+        for (String compiler : compilers) {
+            if (isCommandAvailable(compiler)) {
+                return compiler.equals("cl") ? List.of("cl", "/TP") : List.of(compiler);
             }
-            return process.exitValue() == 0;
-        } catch (Exception ex) {
+        }
+        
+        // Fallback to C compiler for C++ if g++/clang++ not available
+        List<String> cCompiler = resolveCCompiler();
+        return cCompiler != null && (cCompiler.contains("gcc") || cCompiler.contains("clang") || cCompiler.contains("cc")) 
+            ? cCompiler 
+            : null;
+    }
+
+    private boolean isCommandAvailable(String commandName) {
+        if (commandName == null || commandName.isBlank()) {
             return false;
         }
+        // Use cache to avoid repeated slow probes
+        return commandAvailabilityCache.computeIfAbsent(commandName, cmd -> {
+            List<String> probe = isWindows()
+                    ? List.of("cmd", "/c", "where", cmd)
+                    : List.of("sh", "-lc", "command -v " + cmd);
+            try {
+                Process process = new ProcessBuilder(probe).redirectErrorStream(true).start();
+                // Use shorter timeout (2 seconds instead of 5) for faster detection
+                boolean finished = process.waitFor(2, TimeUnit.SECONDS);
+                if (!finished) {
+                    process.destroyForcibly();
+                    return false;
+                }
+                return process.exitValue() == 0;
+            } catch (Exception ex) {
+                return false;
+            }
+        });
     }
 
     private boolean isWindows() {
@@ -853,6 +940,12 @@ public class ChatController {
             return;
         }
         terminalOutputArea.setWrapText(true);
+        
+        // Add tooltip for copy functionality
+        Tooltip terminalTooltip = new Tooltip("Click to enter input\nSelect text and Ctrl+C to copy\nClear button resets output");
+        terminalTooltip.setStyle("-fx-font-size: 11px;");
+        Tooltip.install(terminalOutputArea, terminalTooltip);
+        
         terminalOutputArea.addEventFilter(KeyEvent.KEY_PRESSED, this::handleTerminalKeyPressed);
         terminalOutputArea.addEventFilter(KeyEvent.KEY_TYPED, this::handleTerminalKeyTyped);
         terminalOutputArea.setOnMouseClicked(event -> {
@@ -922,6 +1015,10 @@ public class ChatController {
 
         if (command.isEmpty()) {
             printTerminalPrompt();
+            return;
+        }
+
+        if (forwardInputToActiveExecution(command)) {
             return;
         }
 
@@ -1049,8 +1146,7 @@ public class ChatController {
     }
 
     private String terminalPrompt() {
-        String prefix = terminalWorkingDirectory == null ? ">" : terminalWorkingDirectory.toString() + ">";
-        return prefix + TERMINAL_PROMPT_SUFFIX;
+        return ">>" + TERMINAL_PROMPT_SUFFIX;
     }
 
     private void toggleTerminalPanel() {
@@ -1086,11 +1182,43 @@ public class ChatController {
         appendTerminalLine("[Run] Stop requested...");
 
         Process process = execution.process;
+        BufferedWriter processInput = execution.processInput;
+        if (processInput != null) {
+            try {
+                processInput.close();
+            } catch (IOException ignored) {
+                // Best-effort close while stopping active process.
+            }
+            execution.processInput = null;
+        }
         if (process != null) {
             process.destroy();
             if (process.isAlive()) {
                 process.destroyForcibly();
             }
+        }
+    }
+
+    private boolean forwardInputToActiveExecution(String input) {
+        RunningExecution execution = activeExecution;
+        if (execution == null || execution.cancelRequested) {
+            return false;
+        }
+
+        BufferedWriter processInput = execution.processInput;
+        if (processInput == null) {
+            return false;
+        }
+
+        try {
+            processInput.write(input);
+            processInput.newLine();
+            processInput.flush();
+            setTerminalStatus("Input sent");
+            return true;
+        } catch (IOException ex) {
+            appendTerminalLine("[Run] Failed to send input: " + ex.getMessage());
+            return false;
         }
     }
 
@@ -1138,6 +1266,8 @@ public class ChatController {
             return;
         }
 
+        boolean wasOpen = isTerminalOpen();
+
         ensureTerminalInSplitPane();
         applyTerminalDockLayout();
         terminalPane.setManaged(true);
@@ -1146,10 +1276,12 @@ public class ChatController {
             terminalToggleButton.setText("<");
         }
 
-        if (terminalOutputArea != null && terminalOutputArea.getText().isEmpty()) {
-            printTerminalPrompt();
+        if (!wasOpen) {
+            if (terminalOutputArea != null && terminalOutputArea.getText().isEmpty()) {
+                printTerminalPrompt();
+            }
+            Platform.runLater(this::positionTerminalDivider);
         }
-        Platform.runLater(this::positionTerminalDivider);
     }
 
     private void positionTerminalDivider() {
@@ -1172,7 +1304,7 @@ public class ChatController {
 
         double desiredSize = verticalDock
                 ? clamp(TERMINAL_DEFAULT_HEIGHT, TERMINAL_MIN_HEIGHT, TERMINAL_MAX_HEIGHT)
-                : clamp(TERMINAL_DEFAULT_WIDTH, TERMINAL_MIN_WIDTH, TERMINAL_MAX_WIDTH);
+            : clamp(effectiveTerminalDefaultWidth(), TERMINAL_MIN_WIDTH, TERMINAL_MAX_WIDTH);
         desiredSize = Math.min(desiredSize, availableSize * 0.45);
 
         double terminalShare = clamp(desiredSize / availableSize, 0.16, 0.55);
@@ -1206,43 +1338,13 @@ public class ChatController {
         if (button == null || position == null) {
             return;
         }
-        button.setText("");
-        button.setGraphic(createDockIcon(position));
-    }
-
-    private Node createDockIcon(TerminalDockPosition position) {
-        Region frame = new Region();
-        frame.getStyleClass().add("terminal-dock-icon-frame");
-
-        Region panel = new Region();
-        panel.getStyleClass().add("terminal-dock-icon-panel");
-
-        switch (position) {
-            case LEFT -> {
-                panel.setMinSize(3, 10);
-                panel.setPrefSize(3, 10);
-                StackPane.setAlignment(panel, Pos.CENTER_LEFT);
-            }
-            case RIGHT -> {
-                panel.setMinSize(3, 10);
-                panel.setPrefSize(3, 10);
-                StackPane.setAlignment(panel, Pos.CENTER_RIGHT);
-            }
-            case TOP -> {
-                panel.setMinSize(12, 3);
-                panel.setPrefSize(12, 3);
-                StackPane.setAlignment(panel, Pos.TOP_CENTER);
-            }
-            case BOTTOM -> {
-                panel.setMinSize(12, 3);
-                panel.setPrefSize(12, 3);
-                StackPane.setAlignment(panel, Pos.BOTTOM_CENTER);
-            }
-        }
-
-        StackPane icon = new StackPane(frame, panel);
-        icon.getStyleClass().add("terminal-dock-icon");
-        return icon;
+        button.setGraphic(null);
+        button.setText(switch (position) {
+            case LEFT -> "←";
+            case RIGHT -> "→";
+            case TOP -> "↑";
+            case BOTTOM -> "↓";
+        });
     }
 
     private void updateTerminalDockButtons() {
@@ -1305,12 +1407,29 @@ public class ChatController {
             terminalPane.setMaxHeight(TERMINAL_MAX_HEIGHT);
         } else {
             terminalPane.setMinWidth(TERMINAL_MIN_WIDTH);
-            terminalPane.setPrefWidth(TERMINAL_DEFAULT_WIDTH);
+            terminalPane.setPrefWidth(effectiveTerminalDefaultWidth());
             terminalPane.setMaxWidth(TERMINAL_MAX_WIDTH);
             terminalPane.setMinHeight(0);
             terminalPane.setPrefHeight(Region.USE_COMPUTED_SIZE);
             terminalPane.setMaxHeight(Double.MAX_VALUE);
         }
+    }
+
+    private double effectiveTerminalDefaultWidth() {
+        return isStageFullScreenLike()
+                ? TERMINAL_DEFAULT_WIDTH
+                : TERMINAL_DEFAULT_WIDTH + TERMINAL_WINDOWED_WIDTH_BOOST;
+    }
+
+    private boolean isStageFullScreenLike() {
+        if (chatSplitPane == null || chatSplitPane.getScene() == null) {
+            return false;
+        }
+        Window window = chatSplitPane.getScene().getWindow();
+        if (!(window instanceof Stage stage)) {
+            return false;
+        }
+        return stage.isFullScreen() || stage.isMaximized();
     }
 
     private boolean isTerminalLeading(TerminalDockPosition position) {
@@ -1381,7 +1500,7 @@ public class ChatController {
         if (!terminalOutputArea.getText().isEmpty() && !terminalOutputArea.getText().endsWith(System.lineSeparator())) {
             terminalOutputArea.appendText(System.lineSeparator());
         }
-        terminalOutputArea.appendText(safeLine);
+        terminalOutputArea.appendText(safeLine + System.lineSeparator());
         terminalInputStartIndex = terminalOutputArea.getLength();
         terminalOutputArea.positionCaret(terminalOutputArea.getLength());
     }
@@ -1415,6 +1534,7 @@ public class ChatController {
         private final Button runButton;
         private final Button stopButton;
         private volatile Process process;
+        private volatile BufferedWriter processInput;
         private volatile boolean cancelRequested;
         private volatile boolean stopRequestedByUser;
 
@@ -1433,4 +1553,143 @@ public class ChatController {
         }
     }
 
+    // ================= EXPORT METHODS =================
+    @FXML
+    private void exportAsText() {
+        if (conversation == null || conversation.getMessages().isEmpty()) {
+            showNotification("Nothing to export");
+            return;
+        }
+        
+        handleExport("Text File", "*.txt", file -> 
+            ExportService.exportToText(conversation, file.toPath())
+        );
+    }
+
+    @FXML
+    private void exportAsMarkdown() {
+        if (conversation == null || conversation.getMessages().isEmpty()) {
+            showNotification("Nothing to export");
+            return;
+        }
+        
+        handleExport("Markdown File", "*.md", file -> 
+            ExportService.exportToMarkdown(conversation, file.toPath())
+        );
+    }
+
+    @FXML
+    private void exportAsPDF() {
+        if (conversation == null || conversation.getMessages().isEmpty()) {
+            showNotification("Nothing to export");
+            return;
+        }
+        
+        handleExport("PDF File", "*.pdf", file -> 
+            ExportService.exportToPDF(conversation, file.toPath())
+        );
+    }
+
+    @FXML
+    private void exportAsWord() {
+        if (conversation == null || conversation.getMessages().isEmpty()) {
+            showNotification("Nothing to export");
+            return;
+        }
+        
+        handleExport("Word Document", "*.docx", file -> 
+            ExportService.exportToWord(conversation, file.toPath())
+        );
+    }
+
+    private void handleExport(String format, String fileExtension, ExportHandler handler) {
+        try {
+            Stage stage = (Stage) messageBox.getScene().getWindow();
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Export Chat as " + format);
+            fileChooser.setInitialFileName(sanitizeFileName(conversation.getTitle()) + fileExtension.substring(1));
+            
+            FileChooser.ExtensionFilter filter = new FileChooser.ExtensionFilter(format, fileExtension);
+            fileChooser.getExtensionFilters().add(filter);
+            
+            java.io.File selectedFile = fileChooser.showSaveDialog(stage);
+            if (selectedFile != null) {
+                boolean success = handler.export(selectedFile);
+                if (success) {
+                    showNotification("✓ Chat exported successfully to " + selectedFile.getName());
+                } else {
+                    showNotification("✗ Failed to export chat");
+                }
+            }
+        } catch (Exception ex) {
+            showNotification("✗ Export error: " + ex.getMessage());
+        }
+    }
+
+    private String sanitizeFileName(String filename) {
+        return filename.replaceAll("[<>:\"/\\\\|?*]", "_").replaceAll("\\s+", "_");
+    }
+
+    private void showNotification(String message) {
+        Platform.runLater(() -> {
+            if (exportToastBanner == null || exportToastLabel == null) {
+                return;
+            }
+
+            if (exportToastTimer != null) {
+                exportToastTimer.stop();
+            }
+
+            exportToastLabel.setText(message == null ? "" : message);
+            exportToastBanner.getStyleClass().removeAll("export-toast-success", "export-toast-error", "export-toast-info");
+            if (message != null && message.startsWith("✓")) {
+                exportToastBanner.getStyleClass().add("export-toast-success");
+            } else if (message != null && message.startsWith("✗")) {
+                exportToastBanner.getStyleClass().add("export-toast-error");
+            } else {
+                exportToastBanner.getStyleClass().add("export-toast-info");
+            }
+            exportToastBanner.setOpacity(1);
+            exportToastBanner.setManaged(true);
+            exportToastBanner.setVisible(true);
+
+            exportToastTimer = new PauseTransition(Duration.seconds(2));
+            exportToastTimer.setOnFinished(event -> hideNotificationBanner(false));
+            exportToastTimer.playFromStart();
+        });
+    }
+
+    private void hideNotificationBanner(boolean instant) {
+        if (exportToastBanner == null) {
+            return;
+        }
+        if (exportToastTimer != null) {
+            exportToastTimer.stop();
+            exportToastTimer = null;
+        }
+
+        if (instant) {
+            exportToastBanner.setVisible(false);
+            exportToastBanner.setManaged(false);
+            exportToastBanner.setOpacity(1);
+            return;
+        }
+
+        FadeTransition fade = new FadeTransition(Duration.millis(260), exportToastBanner);
+        fade.setFromValue(exportToastBanner.getOpacity());
+        fade.setToValue(0);
+        fade.setOnFinished(event -> {
+            exportToastBanner.setVisible(false);
+            exportToastBanner.setManaged(false);
+            exportToastBanner.setOpacity(1);
+        });
+        fade.play();
+    }
+
+    @FunctionalInterface
+    private interface ExportHandler {
+        boolean export(java.io.File file) throws IOException;
+    }
+
 }
+

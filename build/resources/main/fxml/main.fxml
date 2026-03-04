@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.example.chatbot.controller.MainController" fx:id="windowRoot" styleClass="window-root">
@@ -12,6 +13,7 @@
                     <Insets top="8" right="10" bottom="8" left="10" />
                 </padding>
 
+                <ImageView fx:id="appIconView" fitWidth="18" fitHeight="18" preserveRatio="true" smooth="true" />
                 <Label text="Cortex" styleClass="titlebar-label" />
 
                 <Region HBox.hgrow="ALWAYS" />

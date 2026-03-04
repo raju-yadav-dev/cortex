@@ -7,6 +7,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -50,8 +53,24 @@ public class SidebarView extends VBox {
         setMaxWidth(AppConfig.SIDEBAR_MAX_WIDTH);
 
         // ===== LOGO & BRANDING =====
+        HBox logoContainer = new HBox(8);
+        logoContainer.setAlignment(Pos.CENTER_LEFT);
+        
+        // Icon image
+        try {
+            Image iconImage = new Image(getClass().getResourceAsStream("/icon/Cortex.png"));
+            ImageView iconView = new ImageView(iconImage);
+            iconView.setFitWidth(24);
+            iconView.setFitHeight(24);
+            iconView.setPreserveRatio(true);
+            logoContainer.getChildren().add(iconView);
+        } catch (Exception e) {
+            System.err.println("Failed to load icon: " + e.getMessage());
+        }
+        
         Label logo = new Label(AppConfig.APP_NAME);
         logo.getStyleClass().add("logo");
+        logoContainer.getChildren().add(logo);
 
         Label subtitle = new Label("AI Coding Assistant");
         subtitle.getStyleClass().add("logo-subtitle");
@@ -71,7 +90,7 @@ public class SidebarView extends VBox {
         VBox.setVgrow(historyView, Priority.ALWAYS);
 
         // Add all components
-        getChildren().addAll(logo, subtitle, newChatButton, searchField, historyView);
+        getChildren().addAll(logoContainer, subtitle, newChatButton, searchField, historyView);
         setAlignment(Pos.TOP_LEFT);
     }
 

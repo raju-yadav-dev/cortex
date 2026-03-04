@@ -12,6 +12,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
@@ -52,6 +53,7 @@ public class MainLayout {
     private final ChatView chatView = new ChatView();
     private BorderPane root;
     private Stage stage;
+    private String currentThemeCss = AppConfig.CSS_PURPLE_THEME; // Default to purple
 
     /**
      * Initializes the application UI and wires all event handlers.
@@ -101,8 +103,10 @@ public class MainLayout {
         // Chat send functionality
         chatView.getSendIconButton().setOnAction(e -> sendMessage());
         
-        // Theme toggle
-        chatView.getThemeButton().setOnAction(e -> toggleTheme());
+        // Theme menu items
+        chatView.getPurpleDarkItem().setOnAction(e -> switchTheme(AppConfig.CSS_PURPLE_THEME, false));
+        chatView.getGreenDarkItem().setOnAction(e -> switchTheme(AppConfig.CSS_GREEN_THEME, false));
+        chatView.getLightModeItem().setOnAction(e -> switchTheme(currentThemeCss, true));
 
         // Keyboard input: Enter to send, Shift+Enter for newline
         chatView.getInputArea().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
@@ -131,7 +135,15 @@ public class MainLayout {
         double sceneHeight = AppConfig.calculateResponsiveHeight(visualBounds.getHeight());
 
         Scene scene = new Scene(root, sceneWidth, sceneHeight);
-        scene.getStylesheets().add(getClass().getResource(AppConfig.CSS_RESOURCE_PATH).toExternalForm());
+        scene.getStylesheets().add(getClass().getResource(currentThemeCss).toExternalForm());
+
+        // Set application icon
+        try {
+            Image icon = new Image(getClass().getResourceAsStream("/icon/Cortex.png"));
+            stage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("Failed to load application icon: " + e.getMessage());
+        }
 
         stage.setTitle(AppConfig.APP_NAME);
         stage.setScene(scene);
@@ -189,16 +201,42 @@ public class MainLayout {
     }
 
     /**
+     * Switches between different themes (Purple Dark, Green Dark, Light).
+     */
+    private void switchTheme(String themeCss, boolean lightMode) {
+        Scene scene = stage.getScene();
+        
+        // Remove old stylesheet
+        scene.getStylesheets().clear();
+        
+        // Update current theme CSS if not switching to light mode
+        if (!lightMode) {
+            currentThemeCss = themeCss;
+        }
+        
+        // Add new stylesheet
+        scene.getStylesheets().add(getClass().getResource(currentThemeCss).toExternalForm());
+        
+        // Toggle light mode class
+        if (lightMode) {
+            if (!root.getStyleClass().contains(AppConfig.LIGHT_MODE_CLASS)) {
+                root.getStyleClass().add(AppConfig.LIGHT_MODE_CLASS);
+            }
+        } else {
+            root.getStyleClass().remove(AppConfig.LIGHT_MODE_CLASS);
+        }
+    }
+
+    /**
      * Toggles between dark and light themes.
+     * @deprecated Use switchTheme instead
      */
     private void toggleTheme() {
         boolean lightMode = root.getStyleClass().contains(AppConfig.LIGHT_MODE_CLASS);
         if (lightMode) {
             root.getStyleClass().remove(AppConfig.LIGHT_MODE_CLASS);
-            chatView.getThemeButton().setText(AppConfig.THEME_BUTTON_LIGHT_TEXT);
         } else {
             root.getStyleClass().add(AppConfig.LIGHT_MODE_CLASS);
-            chatView.getThemeButton().setText(AppConfig.THEME_BUTTON_DARK_TEXT);
         }
     }
 

@@ -1,83 +1,147 @@
-# Chatbot Desktop (JavaFX)
+# AI Chatbot Desktop Application (JavaFX)
 
-A minimal ChatGPT-like desktop chatbot built with Java 17+, JavaFX, Gradle, using an MVC-style architecture. The current implementation uses a mock service for AI responses. The project is structured for easy extension and production readiness.
+A desktop chatbot application built with Java 17+, JavaFX, and Gradle using an MVC-style architecture. This chatbot integrates with OpenAI's API (or compatible services) to provide intelligent conversational responses.
 
-## Project Structure
+## How to Use This Chatbot
+
+### Getting Started
+1. **Create Conversations**: Click the "New Chat" button in the sidebar to start a new conversation.
+2. **Send Messages**: Type your message in the input area at the bottom and press **Enter** to send. Use **Shift+Enter** to create a new line without sending.
+3. **View Chat History**: Your previous conversations appear in the left sidebar. Click on any conversation to view and continue that chat.
+4. **Multiple Chats**: Keep multiple conversations open simultaneously and switch between them using the sidebar.
+
+### Features
+- **Chat Bubbles**: Your messages appear on the right, AI responses appear on the left
+- **Timestamps**: Each message includes a timestamp for reference
+- **Dark Theme**: Modern dark interface for comfortable reading and typing
+- **Responsive UI**: Real-time message updates and smooth scrolling
+- **Conversation Management**: Create, view, and manage multiple conversations
+
+### Code Execution
+Cortex supports executing code snippets directly in the terminal. You can run code in multiple programming languages with built-in compilation and execution.
+
+#### Supported Languages
+
+| Language | Compilers/Runtimes | Status |
+|----------|-------------------|--------|
+| **C** | gcc, clang, cl (MSVC), tcc, cc | ✅ Full Support |
+| **C++** | g++, clang++, cl (MSVC), c++, tcc | ✅ Full Support |
+| **Python** | python, py, python3 | ✅ Full Support |
+| **JavaScript** | Node.js | ✅ Full Support |
+| **Java** | javac, java | ✅ Full Support |
+| **Bash** | bash | ✅ Full Support |
+| **PowerShell** | pwsh, powershell | ✅ Full Support |
+
+**How to Use Code Execution:**
+1. Paste code in a markdown code block with language tag (e.g., ` ```c ` or ` ```python `)
+2. Click the **Run** button that appears on the code block
+3. Output displays in the terminal panel on the right
+4. Use **Shift+Enter** in the terminal for multi-line input
+
+#### Compiler Detection
+- Compilers are auto-detected on startup (cached for performance)
+- Windows: Supports MSVC (`cl`), GCC, Clang, and TCC
+- Linux/Mac: Supports GCC, Clang, and system C compiler
+- If multiple compilers available, uses order: gcc → clang → MSVC → custom
+
+
+Before running the application, ensure you have:
+- **Java 17 or higher** installed on your system
+- **Gradle** (included as a wrapper, so you can use `./gradlew` on Windows)
+- **API Credentials** for OpenAI or a compatible service
+
+## Configuration Setup (IMPORTANT)
+
+The application requires an `app.properties` file to function. **This file must be created outside the `ai-project` folder**, at the parent level.
+
+### Step 1: Create the Configuration File
+
+1. Navigate to `d:\GitHub\Cortex\` (the parent directory of `ai-project`)
+2. Create a new file named `app.properties`
+3. Add the following required configuration:
+
+```properties
+past_api=YOUR_API_KEY_HERE
+openai_model=YOUR_MODEL_NAME_HERE
+openai_base_url=YOUR_BASE_URL_HERE
 ```
-ChatbotApp/
-├── build.gradle
-├── settings.gradle
-├── README.md
-└── src/main/
-    ├── java/com/example/chatbot/
-    │   ├── MainApp.java             # Application entry point
-    │   ├── controller/
-    │   │   ├── MainController.java  # Handles overall layout and chat switching
-    │   │   ├── ChatController.java  # Manages a single conversation view
-    │   │   └── ConversationCell.java# Custom ListCell for sidebar
-    │   ├── model/
-    │   │   ├── Conversation.java    # Holds messages in a chat
-    │   │   └── Message.java         # Represents a message with timestamp
-    │   └── service/
-    │       └── ChatService.java     # In-memory conversation manager with mock AI
-    └── resources/
-        ├── css/styles.css          # Dark mode styles and animations
-        └── fxml/
-            ├── main.fxml           # Sidebar + container layout
-            └── chat.fxml           # Chat area (messages + input)
+
+### Step 2: Fill in Your Details
+
+Replace the placeholders with your actual values:
+
+- **`past_api`**: Your OpenAI API key (e.g., `sk-xxxxxxxxxxxxxxxx`)
+- **`openai_model`**: The model to use (e.g., `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`)
+- **`openai_base_url`**: The API endpoint URL (e.g., `https://api.openai.com/v1`)
+
+Example configuration:
+```properties
+past_api=sk-proj-1234567890abcdefghijklmnopqrstuv
+openai_model=gpt-4-turbo
+openai_base_url=https://api.openai.com/v1
 ```
 
-## Key Features
-- **Sidebar**: New chat button; list of previous conversations.
-- **Chat area**: Message bubbles (user right, bot left), timestamps, scrolling.
-- **Input**: Multiline `TextArea` with Enter to send, Shift+Enter for newline.
-- **State**: Conversations held in memory; multiple chats supported.
-- **Styling**: Dark theme, rounded corners, simple animations via CSS.
-- **Architecture**: MVC; controllers separate UI logic, services manage data.
+### File Location
+```
+d:\GitHub\Cortex\
+├── app.properties          ← Create this file here
+└── ai-project/
+    ├── build.gradle
+    ├── README.md
+    └── src/
+```
 
-## How Each Module Works
-1. **MainApp**: Launches JavaFX, loads `main.fxml`, applies CSS, sets window.
-2. **MainController**: Initializes sidebar, keeps a single `ChatService` instance for conversation list. Handles creation and selection of chats. When a conversation is chosen, loads `chat.fxml` and injects its controller.
-3. **ChatController**: Receives a `Conversation` object and displays messages. Sends input to `ChatService` which appends user and bot messages. UI updates and scrolls automatically.
-4. **ChatService**: Simple in-memory list; `createConversation()` returns a new titled conversation. `sendMessage()` adds the user message and a mocked bot response.
-5. **Models**: `Message` holds sender, content, timestamp; `Conversation` wraps a list of messages with a title.
-6. **FXML Layouts**: `main.fxml` defines a `BorderPane` with a `VBox` sidebar and container. `chat.fxml` defines a message scroll area and input bar.
-7. **CSS**: Styles define dark backgrounds, bubble colors, fonts, and basic control styling.
+**Note**: The application will look for `app.properties` in the parent directory. Without this file and proper configuration, the chatbot will not be able to communicate with the AI service.
 
-## Running the Project
-1. **Prerequisites**: Java 17+ installed. Gradle (or use the included wrapper by running `gradlew` on Windows).
-2. Open a terminal in project root (`d:\GitHub\Projects\AI\another`).
-3. To run:
-   ```powershell
-   ./gradlew run
-   ```
-4. To build a JAR:
-   ```powershell
-   ./gradlew clean jar
-   ```
-   The resulting JAR is in `build/libs/` and can be executed with:
-   ```powershell
-   java -jar build/libs/ChatbotApp.jar
-   ```
+## Building and Running
 
-## Extending for Real AI API
-- The app now uses OpenAI Chat Completions from `ChatService` with asynchronous calls.
-- Set API key in `../app.properties` (outside `ai-project`):
-  ```properties
-  past_api=PASTE_YOUR_API_KEY_HERE
-  ```
-- You can also use environment variable `OPENAI_API_KEY` (takes priority over `past_api`).
-- Optional override path: set `APP_CONFIG_PATH` or JVM arg `-Dapp.config.path=...`.
-- Optional:
-  - `openai_model=gpt-4.1-mini`
-  - `openai_base_url=https://api.openai.com`
+### Run the Application
+Open a terminal in the `ai-project` directory and run:
 
-## Future Improvements
-- **Markdown Rendering**: integrate a library like `flexmark-java` and render in a `WebView` or custom control.
-- **Typing Indicator**: show an animation while waiting for AI response.
-- **Persistent Storage**: serialize conversations to disk (JSON or database) to resume later.
-- **Dark/Light Theme Switcher**: toggle CSS at runtime.
-- **Animations**: use `TranslateTransition` or `FadeTransition` for smooth message entry.
-- **Unit Tests**: add tests for models and service layer.
+```powershell
+./gradlew run
+```
 
-Feel free to customize UI further; the current code is commented and designed for clarity while remaining production-minded.
+### Build a JAR Executable
+To create a compiled JAR file:
+
+```powershell
+./gradlew clean jar
+```
+
+The JAR will be located in `build/libs/ChatbotApp.jar` and can be run with:
+
+```powershell
+java -jar build/libs/ChatbotApp.jar
+```
+
+## Project Architecture
+
+The application follows an MVC (Model-View-Controller) pattern:
+
+- **Controllers**: Handle UI logic and user interactions
+- **Models**: Represent data structures (Messages, Conversations)
+- **Services**: Manage business logic and API communication
+- **Resources**: FXML layouts, CSS styling, and assets
+- **UI Components**: JavaFX controls for chat bubbles and message display
+
+## Environment Variables (Optional)
+
+You can also use environment variables to configure the application:
+
+- `OPENAI_API_KEY`: Set this to override the `past_api` property
+- `APP_CONFIG_PATH`: Specify a custom path for the `app.properties` file
+
+## Troubleshooting
+
+- **"app.properties not found"**: Ensure the file is created in the correct location (parent directory of `ai-project`)
+- **API errors**: Verify your API key is valid, the model name is correct, and the base URL is accessible
+- **Java version errors**: Ensure you have Java 17 or higher installed
+
+## Future Enhancements
+
+- Persistent chat history storage to disk
+- Markdown message rendering
+- Message search and filtering
+- Custom theme switching
+- Export conversations as PDF or text

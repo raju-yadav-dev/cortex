@@ -3,6 +3,8 @@ plugins {
     id 'application'
 }
 
+import org.gradle.api.tasks.bundling.Jar
+
 repositories {
     mavenCentral()   // ⭐ REQUIRED so Gradle can download JavaFX
 }
@@ -21,6 +23,10 @@ dependencies {
     implementation 'org.openjfx:javafx-graphics:20.0.1:win'
     implementation 'org.openjfx:javafx-controls:20.0.1:win'
     implementation 'org.openjfx:javafx-fxml:20.0.1:win'
+
+    // Export dependencies
+    implementation 'org.apache.pdfbox:pdfbox:2.0.29'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
@@ -43,4 +49,17 @@ tasks.withType(JavaCompile) {
 
 test {
     useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'com.example.chatbot.MainApp',
+                'Implementation-Version': archiveVersion
+        )
+    }
+    duplicatesStrategy = 'exclude'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }

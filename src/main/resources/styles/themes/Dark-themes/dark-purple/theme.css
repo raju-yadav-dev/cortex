@@ -1,0 +1,388 @@
+/* ============================================================================ */
+/* CORTEX - DARK PURPLE THEME (Complete) */
+/* ============================================================================ */
+
+/* Import color tokens */
+@import "./_tokens.css";
+
+/* ROOT */
+.root {
+    -fx-background-color: linear-gradient(to bottom right, #1a1f3d, #0f172a, #0a0f1c);
+}
+
+/* SIDEBAR */
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #0b1020, #0f172a);
+}
+
+.logo {
+    -fx-text-fill: #e2e8f0;
+}
+
+.logo-subtitle {
+    -fx-text-fill: #94a3b8;
+}
+
+.divider {
+    -fx-background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* BUTTONS */
+.button-accent {
+    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.5), 18, 0.4, 0, 0);
+}
+
+.button-accent:hover {
+    -fx-background-color: linear-gradient(to right, #7c3aed, #8b5cf6);
+}
+
+.new-chat-button {
+    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.5), 18, 0.4, 0, 0);
+}
+
+.new-chat-button:hover {
+    -fx-background-color: linear-gradient(to right, #7c3aed, #8b5cf6);
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.7), 22, 0.5, 0, 2);
+}
+
+.new-chat-button:pressed {
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.3), 12, 0.2, 0, 0);
+}
+
+/* THEME BUTTON */
+.theme-button {
+    -fx-background-color: rgba(124, 58, 237, 0.15);
+    -fx-text-fill: #e2e8f0;
+    -fx-border-color: rgba(124, 58, 237, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 8, 0.2, 0, 0);
+}
+
+.theme-button:hover {
+    -fx-background-color: rgba(124, 58, 237, 0.25);
+    -fx-border-color: rgba(124, 58, 237, 0.6);
+    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.5), 12, 0.3, 0, 1);
+}
+
+.theme-button:pressed {
+    -fx-background-color: rgba(124, 58, 237, 0.35);
+    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.6), 14, 0.4, 0, 2);
+}
+
+/* HISTORY LIST */
+.history-list {
+    -fx-border-color: rgba(124, 58, 237, 0.15) transparent transparent transparent;
+}
+
+.history-list .list-cell {
+    -fx-text-fill: #e2e8f0;
+}
+
+.history-list .list-cell:filled:selected,
+.history-list .list-cell:filled:hover {
+    -fx-background-color: rgba(124, 58, 237, 0.12);
+}
+
+/* SEARCH FIELDS */
+.sidebar-search {
+    -fx-background-color: rgba(22, 26, 50, 0.8);
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-text-fill: #e2e8f0;
+}
+
+.sidebar-search:focused {
+    -fx-border-color: rgba(124, 58, 237, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 10, 0.2, 0, 0);
+}
+
+.header-search {
+    -fx-background-color: rgba(18, 22, 45, 0.75);
+    -fx-border-color: rgba(255, 255, 255, 0.04);
+}
+
+.search-field {
+    -fx-background-color: rgba(22, 26, 50, 0.8);
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-text-fill: #e2e8f0;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+}
+
+.search-field:focused {
+    -fx-border-color: rgba(124, 58, 237, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 10, 0.2, 0, 0);
+}
+
+/* CHAT CONTAINER */
+.chat-container {
+    -fx-background-color: rgba(18, 22, 45, 0.75);
+    -fx-border-color: rgba(255, 255, 255, 0.04);
+}
+
+/* SCROLL BAR */
+.chat-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(124, 58, 237, 0.4);
+}
+
+.chat-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(124, 58, 237, 0.6);
+}
+
+/* MESSAGE BUBBLES */
+.user-bubble {
+    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.4), 12, 0.3, 0, 2);
+}
+
+.user-bubble:hover {
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.6), 16, 0.4, 0, 3);
+}
+
+.bot-bubble {
+    -fx-background-color: rgba(18, 22, 45, 0.75);
+    -fx-border-color: rgba(255, 255, 255, 0.04);
+    -fx-text-fill: #e2e8f0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 12, 0.2, 0, 2);
+}
+
+.bot-bubble:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 16, 0.3, 0, 3);
+}
+
+.bubble-header {
+    -fx-text-fill: #94a3b8;
+}
+
+.bubble-text {
+    -fx-text-fill: #e2e8f0;
+}
+
+.user-bubble .bubble-text,
+.user-bubble .bubble-header {
+    -fx-text-fill: white;
+}
+
+/* ANSWER CARDS */
+.answer-card {
+    -fx-border-color: rgba(255, 255, 255, 0.04);
+}
+
+.answer-h2 {
+    -fx-text-fill: #e2e8f0;
+}
+
+.answer-h3 {
+    -fx-text-fill: #e2e8f0;
+}
+
+.answer-text {
+    -fx-text-fill: #cbd5e1;
+}
+
+.answer-bullet {
+    -fx-text-fill: #cbd5e1;
+}
+
+/* CODE */
+.code-panel {
+    -fx-background-color: rgba(12, 14, 28, 0.9);
+    -fx-border-color: rgba(255, 255, 255, 0.04);
+}
+
+.code-badge {
+    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
+    -fx-text-fill: white;
+}
+
+.code-text {
+    -fx-text-fill: #d4d4d4;
+}
+
+.copy-button {
+    -fx-background-color: rgba(124, 58, 237, 0.15);
+    -fx-text-fill: #cbd5e1;
+    -fx-border-color: rgba(255, 255, 255, 0.04);
+}
+
+.copy-button:hover {
+    -fx-background-color: rgba(124, 58, 237, 0.25);
+}
+
+/* INPUT FIELDS */
+.text-field, .text-area {
+    -fx-background-color: rgba(22, 26, 50, 0.8);
+    -fx-text-fill: #e2e8f0;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-control-inner-background: rgba(22, 26, 50, 0.8);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 12, 0.2, 0, 2);
+}
+
+.text-field:focused, .text-area:focused {
+    -fx-border-color: rgba(124, 58, 237, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 14, 0.3, 0, 2);
+}
+
+.input-area {
+    -fx-background-color: rgba(22, 26, 50, 0.8);
+    -fx-control-inner-background: rgba(22, 26, 50, 0.8);
+    -fx-text-fill: #e2e8f0;
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 12, 0.2, 0, 2);
+}
+
+.input-area:focused {
+    -fx-background-color: rgba(22, 26, 50, 0.8);
+    -fx-border-color: rgba(255, 255, 255, 0.05);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 12, 0.2, 0, 2);
+}
+
+/* SEND BUTTON */
+.send-icon-button {
+    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.5), 12, 0.3, 0, 2);
+}
+
+.send-icon-button:hover {
+    -fx-background-color: linear-gradient(to right, #7c3aed, #8b5cf6);
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.7), 16, 0.4, 0, 3);
+}
+
+.send-icon-button:pressed {
+    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.3), 8, 0.2, 0, 0);
+}
+
+/* TEXT LABELS */
+.label {
+    -fx-text-fill: #e2e8f0;
+}
+
+.label-muted {
+    -fx-text-fill: #94a3b8;
+}
+
+.typing-label {
+    -fx-text-fill: #9ca3af;
+}
+
+.chat-title {
+    -fx-text-fill: #e2e8f0;
+}
+
+.chat-subtitle {
+    -fx-text-fill: #94a3b8;
+}
+
+/* LIGHT MODE OVERRIDES */
+.app-root.light-mode {
+    -fx-background-color: #f8fafb;
+}
+
+.app-root.light-mode .root {
+    -fx-background-color: linear-gradient(to bottom right, #f8fafb, #fafbfc);
+}
+
+.app-root.light-mode .sidebar {
+    -fx-background-color: #f3f4f8;
+}
+
+.app-root.light-mode .chat-container {
+    -fx-background-color: #ffffff;
+    -fx-border-color: rgba(99, 102, 241, 0.08);
+}
+
+.app-root.light-mode .logo {
+    -fx-text-fill: #1e293b;
+}
+
+.app-root.light-mode .logo-subtitle {
+    -fx-text-fill: #64748b;
+}
+
+.app-root.light-mode .label {
+    -fx-text-fill: #1e293b;
+}
+
+.app-root.light-mode .label-muted {
+    -fx-text-fill: #64748b;
+}
+
+.app-root.light-mode .text-field,
+.app-root.light-mode .text-area,
+.app-root.light-mode .input-area {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #1e293b;
+    -fx-border-color: rgba(99, 102, 241, 0.15);
+    -fx-prompt-text-fill: #94a3b8;
+}
+
+.app-root.light-mode .text-field:focused,
+.app-root.light-mode .text-area:focused,
+.app-root.light-mode .input-area:focused {
+    -fx-border-color: rgba(99, 102, 241, 0.15);
+}
+
+.app-root.light-mode .theme-button {
+    -fx-background-color: rgba(124, 58, 237, 0.08);
+    -fx-text-fill: #1e293b;
+    -fx-border-color: rgba(124, 58, 237, 0.2);
+}
+
+.app-root.light-mode .history-list .list-cell {
+    -fx-text-fill: #1e293b;
+}
+
+.app-root.light-mode .history-list .list-cell:filled:selected,
+.app-root.light-mode .history-list .list-cell:filled:hover {
+    -fx-background-color: rgba(124, 58, 237, 0.06);
+}
+
+.app-root.light-mode .bot-bubble {
+    -fx-background-color: #f3f4f8;
+    -fx-border-color: rgba(99, 102, 241, 0.1);
+    -fx-text-fill: #1e293b;
+}
+
+.app-root.light-mode .bubble-text {
+    -fx-text-fill: #1e293b;
+}
+
+.app-root.light-mode .bubble-header {
+    -fx-text-fill: #64748b;
+}
+
+.app-root.light-mode .answer-text,
+.app-root.light-mode .answer-bullet {
+    -fx-text-fill: #333333;
+}
+
+.app-root.light-mode .code-panel {
+    -fx-background-color: #f9fafb;
+}
+
+.app-root.light-mode .code-text {
+    -fx-text-fill: #2b2b2b;
+}
+
+.app-root.light-mode .copy-button {
+    -fx-background-color: rgba(124, 58, 237, 0.08);
+    -fx-text-fill: #1e293b;
+    -fx-border-color: rgba(99, 102, 241, 0.1);
+}
+
+.app-root.light-mode .copy-button:hover {
+    -fx-background-color: rgba(124, 58, 237, 0.15);
+}
+
+.app-root.light-mode .sidebar-search {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #1e293b;
+    -fx-border-color: rgba(99, 102, 241, 0.15);
+    -fx-prompt-text-fill: #94a3b8;
+}

@@ -1,0 +1,40 @@
+/* ============================================================================ */
+/* CORTEX - DARK PURPLE THEME COLOR TOKENS */
+/* ============================================================================ */
+
+/* Primary Colors */
+:root {
+    /* Accent */
+    -fx-accent-primary: #6d28d9;
+    -fx-accent-primary-hover: #7c3aed;
+    -fx-accent-primary-active: #8b5cf6;
+    
+    /* Text */
+    -fx-text-primary: #e2e8f0;
+    -fx-text-secondary: #94a3b8;
+    -fx-text-muted: #9ca3af;
+    
+    /* Background */
+    -fx-bg-root-start: #1a1f3d;
+    -fx-bg-root-mid: #2a1b45;
+    -fx-bg-root-linear: linear-gradient(to bottom right, #0b1020, #0f172a, #0a0f1c);
+    -fx-bg-sidebar: linear-gradient(to bottom, #0b1020, #0f172a);
+    -fx-bg-dark: rgba(18, 22, 45, 0.75);
+    -fx-bg-darker: rgba(22, 26, 50, 0.8);
+    -fx-bg-code: rgba(12, 14, 28, 0.9);
+    
+    /* Borders and Dividers */
+    -fx-border-subtle: rgba(255, 255, 255, 0.04);
+    -fx-border-accent: rgba(124, 58, 237, 0.15);
+    -fx-border-accent-hover: rgba(124, 58, 237, 0.4);
+    
+    /* Code */
+    -fx-code-text: #d4d4d4;
+    -fx-code-light: #cbd5e1;
+    -fx-code-content: #cbd5e1;
+    
+    /* Accents for effects */
+    -fx-shadow-accent: rgba(124, 58, 237, 0.5);
+    -fx-shadow-accent-hover: rgba(124, 58, 237, 0.7);
+    -fx-shadow-accent-light: rgba(124, 58, 237, 0.3);
+}

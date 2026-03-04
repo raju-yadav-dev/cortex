@@ -1,0 +1,37 @@
+/* ============================================================================ */
+/* CORTEX - LIGHT THEME COLOR TOKENS */
+/* ============================================================================ */
+
+/* Primary Colors */
+:root {
+    /* Accent (uses purple as default for light mode) */
+    -fx-accent-primary: #6366f1;
+    -fx-accent-primary-hover: #818cf8;
+    
+    /* Text */
+    -fx-text-primary: #1e293b;
+    -fx-text-secondary: #64748b;
+    -fx-text-muted: #94a3b8;
+    
+    /* Background */
+    -fx-bg-root-linear: linear-gradient(to bottom right, #f8fafb, #fafbfc);
+    -fx-bg-sidebar: #f3f4f8;
+    -fx-bg-dark: #ffffff;
+    -fx-bg-darker: #f1f5f9;
+    -fx-bg-code: #f9fafb;
+    
+    /* Borders and Dividers */
+    -fx-border-subtle: rgba(99, 102, 241, 0.08);
+    -fx-border-accent: rgba(99, 102, 241, 0.15);
+    -fx-border-accent-hover: rgba(99, 102, 241, 0.2);
+    
+    /* Code */
+    -fx-code-text: #2b2b2b;
+    -fx-code-light: #333333;
+    -fx-code-content: #333333;
+    
+    /* Accents for effects */
+    -fx-shadow-accent: rgba(99, 102, 241, 0.2);
+    -fx-shadow-accent-hover: rgba(99, 102, 241, 0.3);
+    -fx-shadow-accent-light: rgba(99, 102, 241, 0.1);
+}

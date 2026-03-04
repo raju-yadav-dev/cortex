@@ -5,6 +5,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.BorderPane;
@@ -37,7 +39,10 @@ public class ChatView extends BorderPane {
     private final ScrollPane scrollPane = new ScrollPane(messagesBox);
     private final TextArea inputArea = new TextArea();
     private final Button sendIconButton = new Button(AppConfig.SEND_BUTTON_ICON);
-    private final Button themeButton = new Button(AppConfig.THEME_BUTTON_LIGHT_TEXT);
+    private final MenuButton themeMenuButton = new MenuButton(AppConfig.THEME_BUTTON_TEXT);
+    private final MenuItem purpleDarkItem = new MenuItem(AppConfig.THEME_PURPLE_DARK);
+    private final MenuItem greenDarkItem = new MenuItem(AppConfig.THEME_GREEN_DARK);
+    private final MenuItem lightModeItem = new MenuItem(AppConfig.THEME_LIGHT);
     private final Label typingLabel = new Label(AppConfig.TYPING_INDICATOR_TEXT);
 
     /**
@@ -47,11 +52,13 @@ public class ChatView extends BorderPane {
         getStyleClass().add("chat-root");
         setPadding(new Insets(16));
 
-        // ===== HEADER: Theme toggle =====
-        themeButton.getStyleClass().add("theme-button");
+        // ===== HEADER: Theme menu =====
+        themeMenuButton.getStyleClass().add("theme-button");
+        themeMenuButton.getItems().addAll(purpleDarkItem, greenDarkItem, lightModeItem);
+        
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox headerRow = new HBox(10, spacer, themeButton);
+        HBox headerRow = new HBox(10, spacer, themeMenuButton);
         headerRow.setAlignment(Pos.CENTER);
         
         // ===== TYPING INDICATOR =====
@@ -131,8 +138,20 @@ public class ChatView extends BorderPane {
         return sendIconButton;
     }
 
-    public Button getThemeButton() {
-        return themeButton;
+    public MenuButton getThemeMenuButton() {
+        return themeMenuButton;
+    }
+    
+    public MenuItem getPurpleDarkItem() {
+        return purpleDarkItem;
+    }
+    
+    public MenuItem getGreenDarkItem() {
+        return greenDarkItem;
+    }
+    
+    public MenuItem getLightModeItem() {
+        return lightModeItem;
     }
 
     public Label getTypingLabel() {
