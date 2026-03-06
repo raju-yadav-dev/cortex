@@ -32,7 +32,9 @@ import javafx.util.Duration;
  * - Compose layout (sidebar | divider | chat area)
  * - Wire UI events to controller methods
  * - Manage message rendering and animations
- * - Handle keyboard shortcuts (Enter to send, Shift+Enter for newline)
+ * - Handle ChatGPT-style keyboard input:
+ *   • Enter = Send message
+ *   • Shift+Enter = New line in input field
  * - Implement theme switching (dark/light mode)
  * - Coordinate responsive window sizing
  *
@@ -46,6 +48,7 @@ import javafx.util.Duration;
  * - UI updates use Platform.runLater for thread safety
  * - Animations provide visual feedback without blocking UI
  * - CSS classes allow easy styling changes
+ * - Event consumption prevents default TextArea behavior when appropriate
  */
 public class MainLayout {
     private final ChatController chatController = new ChatController();
@@ -108,16 +111,24 @@ public class MainLayout {
         chatView.getGreenDarkItem().setOnAction(e -> switchTheme(AppConfig.CSS_GREEN_THEME, false));
         chatView.getLightModeItem().setOnAction(e -> switchTheme(currentThemeCss, true));
 
-        // Keyboard input: Enter to send, Shift+Enter for newline
+        // Keyboard input: ChatGPT-style input handling
+        // - Enter (alone) sends the message
+        // - Shift+Enter inserts a new line in the input field
+        // - Unlike standard TextArea, we suppress the default Enter behavior
         chatView.getInputArea().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 if (event.isShiftDown()) {
-                    int pos = chatView.getInputArea().getCaretPosition();
-                    chatView.getInputArea().insertText(pos, "\n");
+                    // Shift+Enter: Insert newline at cursor position
+                    // This allows multi-line message composition
+                    int caretPos = chatView.getInputArea().getCaretPosition();
+                    chatView.getInputArea().insertText(caretPos, "\n");
+                    event.consume(); // Prevent default Enter behavior
                 } else {
+                    // Enter (alone): Send the message
+                    // Same behavior as clicking the send button
                     sendMessage();
+                    event.consume(); // Prevent default Enter behavior
                 }
-                event.consume();
             }
         });
 

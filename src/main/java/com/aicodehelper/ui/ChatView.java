@@ -20,19 +20,25 @@ import javafx.scene.layout.VBox;
  * ChatView represents the main chat panel containing:
  * - Header with theme toggle
  * - Scrollable message area
- * - Input composer with send button
+ * - Input composer with ChatGPT-style keyboard behavior
  * - Typing indicator
+ *
+ * Keyboard Behavior (ChatGPT-style):
+ * - ENTER: Send message (scroll down and clear input)
+ * - SHIFT+ENTER: New line in input field
+ * - Input area supports multi-line text composition
+ * - Dynamic resizing keeps UI layout intact during multi-line input
  *
  * Responsibilities:
  * - Display messages with proper styling
- * - Provide input area for user messages
+ * - Provide input area for user messages with responsive resizing
  * - Show status indicators (typing animation)
  * - Expose components for controller wiring
  *
  * Design Pattern: View component in MVP architecture
  * - Does NOT contain business logic
  * - Purely presentational
- * - Exposes components for external event wiring
+ * - Exposes components for external event wiring (e.g., keyboard binding in MainLayout)
  */
 public class ChatView extends BorderPane {
     private final VBox messagesBox = new VBox(AppConfig.MESSAGE_SPACING);
@@ -83,13 +89,20 @@ public class ChatView extends BorderPane {
         chatContainer.getStyleClass().add("chat-container");
         setCenter(chatContainer);
 
-        // ===== INPUT AREA =====
+        // ===== INPUT AREA: ChatGPT-style composition =====
+        // Features:
+        // - Multi-line input with dynamic resizing
+        // - Enter key sends message (handled in MainLayout keyboard listener)
+        // - Shift+Enter inserts a new line
+        // - Text wraps automatically
+        // - Grows as user types (up to max 4 rows)
         inputArea.setPromptText(AppConfig.INPUT_PLACEHOLDER);
         inputArea.setWrapText(true);
         inputArea.getStyleClass().add("input-area");
         inputArea.setPrefRowCount(AppConfig.INPUT_AREA_DEFAULT_ROWS);
         inputArea.setMinHeight(72);
-        // Dynamic resize as user types
+        // Dynamically resize input area as content changes
+        // This allows the UI to adapt to multi-line messages
         inputArea.textProperty().addListener((obs, oldText, newText) -> resizeInput());
 
         // ===== SEND BUTTON =====
@@ -111,8 +124,14 @@ public class ChatView extends BorderPane {
 
     /**
      * Dynamically resizes the input area based on content.
-     * Expands as user types more lines (up to max rows).
-     * Shrinks when content is removed.
+     * This method ensures the UI layout doesn't break when multi-line text is added.
+     * 
+     * Behavior:
+     * - Expands as user types more lines (up to max of 4 rows)
+     * - Shrinks when content is removed, returning to minimum rows
+     * - Maintains proper spacing and alignment with other UI elements
+     * 
+     * Implementation: Counts actual line breaks (\R regex) and caps at MIN/MAX row count.
      */
     private void resizeInput() {
         int lines = Math.max(AppConfig.INPUT_AREA_MIN_ROWS,
