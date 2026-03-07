@@ -25,11 +25,17 @@
                         <items>
                             <Menu text="Theme">
                                 <items>
-                                    <SeparatorMenuItem />
-                                    <RadioMenuItem fx:id="themeLightItem" text="Light" />
-                                    <SeparatorMenuItem />
-                                    <RadioMenuItem fx:id="themeDarkPurpleItem" text="Dark Purple (Default)" selected="true" />
+                                    <RadioMenuItem fx:id="themeDarkPurpleItem" text="Dark Purple (Default Dark)" selected="true" />
                                     <RadioMenuItem fx:id="themeDarkGreenItem" text="Dark Green" />
+                                    <RadioMenuItem fx:id="themeDarkOceanItem" text="Dark Ocean" />
+                                    <RadioMenuItem fx:id="themeDarkEmberItem" text="Dark Ember" />
+                                    <RadioMenuItem fx:id="themeDarkSlateItem" text="Dark Slate" />
+                                    <SeparatorMenuItem />
+                                    <RadioMenuItem fx:id="themeLightItem" text="Light (Default Light)" />
+                                    <RadioMenuItem fx:id="themeLightSkyItem" text="Light Sky" />
+                                    <RadioMenuItem fx:id="themeLightMintItem" text="Light Mint" />
+                                    <RadioMenuItem fx:id="themeLightRoseItem" text="Light Rose" />
+                                    <RadioMenuItem fx:id="themeLightSandItem" text="Light Sand" />
                                 </items>
                             </Menu>
                         </items>

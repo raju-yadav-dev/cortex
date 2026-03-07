@@ -5,7 +5,9 @@ import com.example.chatbot.model.Message;
 import com.example.chatbot.service.ChatService;
 import com.example.chatbot.service.ExportService;
 import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
@@ -128,6 +130,10 @@ public class ChatController {
     private Path terminalWorkingDirectory = Path.of(System.getProperty("user.home"));
     private int terminalInputStartIndex;
     private TerminalDockPosition terminalDockPosition = TerminalDockPosition.RIGHT;
+    private Timeline generatingIndicatorTimeline;
+    private Timeline responseTypingTimeline;
+    private HBox pendingBotBubbleRow;
+    private Label pendingBotBubbleLabel;
 
     private enum TerminalDockPosition {
         LEFT,
@@ -213,6 +219,7 @@ public class ChatController {
 
     // ================= CONVERSATION BINDING =================
     public void setConversation(Conversation conversation) {
+        stopResponseAnimations();
         this.conversation = conversation;
         refreshMessages();
     }
@@ -229,7 +236,11 @@ public class ChatController {
 
     // ================= MESSAGE RENDER =================
     private void refreshMessages() {
+        stopResponseAnimations();
         messageBox.getChildren().clear();
+        if (conversation == null) {
+            return;
+        }
         for (Message msg : conversation.getMessages()) {
             messageBox.getChildren().add(createBubble(msg));
         }
@@ -254,6 +265,7 @@ public class ChatController {
         String previousTitle = conversation.getTitle();
         inputArea.clear();
         setComposerBusy(true);
+        stopResponseAnimations();
 
         inFlightRequest = chatService.sendMessageAsync(conversation, text);
 
@@ -266,37 +278,191 @@ public class ChatController {
         if (onConversationUpdated != null && !Objects.equals(previousTitle, conversation.getTitle())) {
             onConversationUpdated.run();
         }
+
+        HBox pendingBubble = createGeneratingBubble();
+        messageBox.getChildren().add(pendingBubble);
+        playFadeIn(pendingBubble);
+        startGeneratingIndicator();
         scrollToBottom();
 
         inFlightRequest.whenComplete((botMessage, error) -> Platform.runLater(() -> {
-            try {
-                if (conversation == null) {
-                    return;
-                }
-
-                Message responseMessage = botMessage;
-                if (error != null) {
-                    responseMessage = new Message(
-                            Message.Sender.BOT,
-                            "I could not generate a reply.\n\n- " + error.getMessage()
-                    );
-                }
-                if (responseMessage == null) {
-                    responseMessage = new Message(
-                            Message.Sender.BOT,
-                            "I could not generate a reply.\n\n- Empty response from assistant."
-                    );
-                }
-
-                chatService.appendAssistantMessage(conversation, responseMessage);
-                HBox bubble = createBubbleSafely(responseMessage);
-                messageBox.getChildren().add(bubble);
-                playFadeIn(bubble);
-                scrollToBottom();
-            } finally {
+            if (conversation == null) {
+                stopResponseAnimations();
                 setComposerBusy(false);
+                return;
+            }
+
+            Message responseMessage = botMessage;
+            if (error != null) {
+                String errorMessage = error.getMessage() == null ? error.toString() : error.getMessage();
+                responseMessage = new Message(
+                        Message.Sender.BOT,
+                        "I could not generate a reply.\n\n- " + errorMessage
+                );
+            }
+            if (responseMessage == null) {
+                responseMessage = new Message(
+                        Message.Sender.BOT,
+                        "I could not generate a reply.\n\n- Empty response from assistant."
+                );
+            }
+
+            chatService.appendAssistantMessage(conversation, responseMessage);
+            animateAssistantResponse(responseMessage, () -> {
+                inFlightRequest = null;
+                setComposerBusy(false);
+            });
+        }));
+    }
+
+    private HBox createGeneratingBubble() {
+        HBox row = new HBox();
+        row.getStyleClass().add("message-row");
+        row.setAlignment(Pos.TOP_LEFT);
+
+        Label generatingLabel = new Label("Cortex is generating");
+        generatingLabel.setWrapText(true);
+        generatingLabel.setMaxWidth(520);
+        generatingLabel.getStyleClass().addAll("message-text", "message-generating-text");
+
+        VBox bubble = new VBox(generatingLabel);
+        bubble.getStyleClass().addAll("message-bubble", "bot-bubble", "generating-bubble");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        row.getChildren().addAll(bubble, spacer);
+
+        pendingBotBubbleRow = row;
+        pendingBotBubbleLabel = generatingLabel;
+        return row;
+    }
+
+    private void startGeneratingIndicator() {
+        stopGeneratingIndicator();
+        if (pendingBotBubbleLabel == null) {
+            return;
+        }
+
+        final String base = "Cortex is generating";
+        final int[] dots = {0};
+        pendingBotBubbleLabel.setText(base);
+
+        generatingIndicatorTimeline = new Timeline(new KeyFrame(Duration.millis(260), event -> {
+            if (pendingBotBubbleLabel == null) {
+                stopGeneratingIndicator();
+                return;
+            }
+            dots[0] = (dots[0] + 1) % 4;
+            pendingBotBubbleLabel.setText(base + ".".repeat(dots[0]));
+            scrollToBottomNow();
+        }));
+        generatingIndicatorTimeline.setCycleCount(Timeline.INDEFINITE);
+        generatingIndicatorTimeline.play();
+    }
+
+    private void stopGeneratingIndicator() {
+        if (generatingIndicatorTimeline != null) {
+            generatingIndicatorTimeline.stop();
+            generatingIndicatorTimeline = null;
+        }
+    }
+
+    private void stopResponseTyping() {
+        if (responseTypingTimeline != null) {
+            responseTypingTimeline.stop();
+            responseTypingTimeline = null;
+        }
+    }
+
+    private void clearPendingBotBubble() {
+        pendingBotBubbleRow = null;
+        pendingBotBubbleLabel = null;
+    }
+
+    private void stopResponseAnimations() {
+        stopGeneratingIndicator();
+        stopResponseTyping();
+        clearPendingBotBubble();
+    }
+
+    private void animateAssistantResponse(Message responseMessage, Runnable onComplete) {
+        stopGeneratingIndicator();
+
+        if (responseMessage == null) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
+            return;
+        }
+
+        if (pendingBotBubbleRow == null
+                || pendingBotBubbleLabel == null
+                || !messageBox.getChildren().contains(pendingBotBubbleRow)) {
+            HBox bubble = createBubbleSafely(responseMessage);
+            messageBox.getChildren().add(bubble);
+            playFadeIn(bubble);
+            scrollToBottomNow();
+            clearPendingBotBubble();
+            if (onComplete != null) {
+                onComplete.run();
+            }
+            return;
+        }
+
+        stopResponseTyping();
+
+        String fullText = responseMessage.getContent() == null ? "" : responseMessage.getContent();
+        if (fullText.isEmpty()) {
+            replacePendingBubbleWithFinal(responseMessage);
+            if (onComplete != null) {
+                onComplete.run();
+            }
+            return;
+        }
+
+        pendingBotBubbleLabel.setText("");
+        final int totalLength = fullText.length();
+        final int[] cursor = {0};
+
+        responseTypingTimeline = new Timeline(new KeyFrame(Duration.millis(14), event -> {
+            int remaining = totalLength - cursor[0];
+            int step = remaining > 420 ? 8
+                    : remaining > 220 ? 6
+                    : remaining > 120 ? 4
+                    : remaining > 60 ? 3
+                    : 1;
+
+            cursor[0] = Math.min(totalLength, cursor[0] + step);
+            if (pendingBotBubbleLabel != null) {
+                pendingBotBubbleLabel.setText(fullText.substring(0, cursor[0]));
+            }
+            scrollToBottomNow();
+
+            if (cursor[0] >= totalLength) {
+                stopResponseTyping();
+                replacePendingBubbleWithFinal(responseMessage);
+                if (onComplete != null) {
+                    onComplete.run();
+                }
             }
         }));
+        responseTypingTimeline.setCycleCount(Timeline.INDEFINITE);
+        responseTypingTimeline.play();
+    }
+
+    private void replacePendingBubbleWithFinal(Message responseMessage) {
+        int index = pendingBotBubbleRow == null ? -1 : messageBox.getChildren().indexOf(pendingBotBubbleRow);
+        HBox finalBubble = createBubbleSafely(responseMessage);
+
+        if (index >= 0) {
+            messageBox.getChildren().set(index, finalBubble);
+        } else {
+            messageBox.getChildren().add(finalBubble);
+            playFadeIn(finalBubble);
+        }
+
+        clearPendingBotBubble();
+        scrollToBottomNow();
     }
 
     // ================= BUBBLE FACTORY =================
@@ -393,7 +559,18 @@ public class ChatController {
 
     // ================= SCROLL HELPERS =================
     private void scrollToBottom() {
-        Platform.runLater(() -> scrollPane.setVvalue(1.0));
+        Platform.runLater(this::scrollToBottomNow);
+    }
+
+    private void scrollToBottomNow() {
+        if (scrollPane == null) {
+            return;
+        }
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::scrollToBottomNow);
+            return;
+        }
+        scrollPane.setVvalue(1.0);
     }
 
     private Node buildMessageContent(String content) {

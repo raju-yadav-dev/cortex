@@ -1,233 +1,145 @@
 /* ============================================================================ */
-/* CORTEX - DARK PURPLE THEME                                                  */
+/* CORTEX - DARK PURPLE THEME */
 /* ============================================================================ */
 
-/* ---- Color Tokens ---- */
-:root {
-    -fx-accent-primary: #6d28d9;
-    -fx-accent-primary-hover: #7c3aed;
-    -fx-accent-primary-active: #8b5cf6;
-    -fx-text-primary: #e2e8f0;
-    -fx-text-secondary: #94a3b8;
-    -fx-text-muted: #9ca3af;
-    -fx-bg-root-start: #1a1f3d;
-    -fx-bg-root-mid: #2a1b45;
-    -fx-bg-root-linear: linear-gradient(to bottom right, #0b1020, #0f172a, #0a0f1c);
-    -fx-bg-sidebar: linear-gradient(to bottom, #0b1020, #0f172a);
-    -fx-bg-dark: rgba(18, 22, 45, 0.75);
-    -fx-bg-darker: rgba(22, 26, 50, 0.8);
-    -fx-bg-code: rgba(12, 14, 28, 0.9);
-    -fx-border-subtle: rgba(255, 255, 255, 0.04);
-    -fx-border-accent: rgba(124, 58, 237, 0.15);
-    -fx-border-accent-hover: rgba(124, 58, 237, 0.4);
-    -fx-code-text: #d4d4d4;
-    -fx-code-light: #cbd5e1;
-    -fx-code-content: #cbd5e1;
-    -fx-shadow-accent: rgba(124, 58, 237, 0.5);
-    -fx-shadow-accent-hover: rgba(124, 58, 237, 0.7);
-    -fx-shadow-accent-light: rgba(124, 58, 237, 0.3);
+.window-root.theme-dark {
+    -app-bg: #1b1f4a;
+    -app-surface: #262d5f;
+    -app-surface-elevated: #2d3570;
+    -app-border: rgba(191, 201, 255, 0.18);
+    -app-separator: #000000;
+
+    -app-accent: #f84f79;
+    -app-accent-soft: rgba(248, 79, 121, 0.30);
+    -app-accent-hover: #ff6f95;
+    -app-accent-pressed: #df3e67;
+
+    -app-text-primary: #e9ecff;
+    -app-text-secondary: rgba(199, 208, 249, 0.90);
+    -app-text-muted: rgba(199, 208, 249, 0.66);
+
+    -app-muted-hover: rgba(184, 195, 242, 0.18);
+    -app-focus-ring: rgba(248, 79, 121, 0.45);
 }
 
-/* ---- Theme Styles ---- */
-
-.window-root {
-    -fx-background-color: linear-gradient(to bottom right, #1a1f3d, #0f172a, #0a0f1c);
+.window-root.theme-dark .app-shell {
+    -fx-background-color: linear-gradient(to bottom right, #151a43 0%, #1d2250 42%, #20265a 100%);
+    -fx-border-color: rgba(191, 201, 255, 0.18);
 }
 
-.sidebar {
-    -fx-background-color: linear-gradient(to bottom, #0b1020, #0f172a);
+.window-root.theme-dark .sidebar,
+.window-root.theme-dark .title-bar,
+.window-root.theme-dark .bot-bubble,
+.window-root.theme-dark .input-shell,
+.window-root.theme-dark .new-chat-button {
+    -fx-background-color: #262d5f;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
 }
 
-.logo {
-    -fx-text-fill: #e2e8f0;
+.window-root.theme-dark .chat-history-list .list-cell {
+    -fx-background-color: #2b336e;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
+    -fx-text-fill: #e9ecff;
 }
 
-.logo-subtitle {
-    -fx-text-fill: #94a3b8;
+.window-root.theme-dark .chat-history-list .list-cell:filled:hover {
+    -fx-background-color: #384493;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
 }
 
-.divider {
-    -fx-background-color: rgba(255, 255, 255, 0.04);
+.window-root.theme-dark .chat-history-list .list-cell:filled:selected,
+.window-root.theme-dark .chat-history-list .list-cell:filled:selected:focused {
+    -fx-background-color: #3f4ba0;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
 }
 
-.button-accent {
-    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
-    -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.5), 18, 0.4, 0, 0);
+.window-root.theme-dark .button,
+.window-root.theme-dark .menu-button {
+    -fx-background-color: #2d3570;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
+    -fx-text-fill: #e9ecff;
 }
 
-.button-accent:hover {
-    -fx-background-color: linear-gradient(to right, #7c3aed, #8b5cf6);
+.window-root.theme-dark .button:hover,
+.window-root.theme-dark .menu-button:hover {
+    -fx-background-color: #384493;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
 }
 
-.new-chat-button {
-    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
-    -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.5), 18, 0.4, 0, 0);
+.window-root.theme-dark .button:pressed,
+.window-root.theme-dark .menu-button:showing {
+    -fx-background-color: #3f4ba0;
+    -fx-border-color: rgba(191, 201, 255, 0.18);
 }
 
-.new-chat-button:hover {
-    -fx-background-color: linear-gradient(to right, #7c3aed, #8b5cf6);
-    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.7), 22, 0.5, 0, 2);
+.window-root.theme-dark .message-text {
+    -fx-text-fill: #e9ecff;
 }
 
-.new-chat-button:pressed {
-    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.3), 12, 0.2, 0, 0);
+.window-root.theme-dark .user-bubble {
+    -fx-background-color: #b8bef2;
+    -fx-border-color: rgba(232, 236, 255, 0.26);
 }
 
-.theme-button {
-    -fx-background-color: rgba(124, 58, 237, 0.15);
-    -fx-text-fill: #e2e8f0;
-    -fx-border-color: rgba(124, 58, 237, 0.4);
-    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 8, 0.2, 0, 0);
+.window-root.theme-dark .user-bubble .message-text {
+    -fx-text-fill: #1f2557;
 }
 
-.theme-button:hover {
-    -fx-background-color: rgba(124, 58, 237, 0.25);
-    -fx-border-color: rgba(124, 58, 237, 0.6);
-    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.5), 12, 0.3, 0, 1);
+.window-root.theme-dark .input-shell.input-focused {
+    -fx-border-color: rgba(248, 79, 121, 0.45);
 }
 
-.theme-button:pressed {
-    -fx-background-color: rgba(124, 58, 237, 0.35);
-    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.6), 14, 0.4, 0, 2);
+.window-root.theme-dark .send-button {
+    -fx-background-color: rgba(148, 163, 184, 0.18);
+    -fx-border-color: rgba(148, 163, 184, 0.34);
+    -fx-text-fill: #e9ecff;
 }
 
-.history-list {
-    -fx-border-color: rgba(124, 58, 237, 0.15) transparent transparent transparent;
+.window-root.theme-dark .send-button:hover {
+    -fx-background-color: #384493;
 }
 
-.history-list .list-cell {
-    -fx-text-fill: #e2e8f0;
+.window-root.theme-dark .send-button:pressed {
+    -fx-background-color: #3f4ba0;
 }
 
-.history-list .list-cell:filled:selected,
-.history-list .list-cell:filled:hover {
-    -fx-background-color: rgba(124, 58, 237, 0.12);
+.window-root.theme-dark .conversation-options-button,
+.window-root.theme-light .conversation-options-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-background-insets: 0;
+    -fx-effect: null;
 }
 
-.sidebar-search {
-    -fx-background-color: rgba(22, 26, 50, 0.8);
-    -fx-border-color: rgba(255, 255, 255, 0.05);
-    -fx-prompt-text-fill: #94a3b8;
-    -fx-text-fill: #e2e8f0;
+.window-root.theme-dark .conversation-options-button:hover,
+.window-root.theme-dark .conversation-options-button:pressed,
+.window-root.theme-dark .conversation-options-button:focused,
+.window-root.theme-dark .conversation-options-button:armed,
+.window-root.theme-light .conversation-options-button:hover,
+.window-root.theme-light .conversation-options-button:pressed,
+.window-root.theme-light .conversation-options-button:focused,
+.window-root.theme-light .conversation-options-button:armed {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-background-insets: 0;
+    -fx-effect: null;
 }
-
-.sidebar-search:focused {
-    -fx-border-color: rgba(124, 58, 237, 0.4);
-    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 10, 0.2, 0, 0);
-}
-
-.header-search {
-    -fx-background-color: rgba(18, 22, 45, 0.75);
-    -fx-border-color: rgba(255, 255, 255, 0.04);
-}
-
-.search-field {
-    -fx-background-color: rgba(22, 26, 50, 0.8);
-    -fx-prompt-text-fill: #94a3b8;
-    -fx-text-fill: #e2e8f0;
-    -fx-border-color: rgba(255, 255, 255, 0.05);
-}
-
-.search-field:focused {
-    -fx-border-color: rgba(124, 58, 237, 0.4);
-    -fx-effect: dropshadow(gaussian, rgba(124, 58, 237, 0.3), 10, 0.2, 0, 0);
-}
-
-.chat-container {
-    -fx-background-color: rgba(18, 22, 45, 0.75);
-    -fx-border-color: rgba(255, 255, 255, 0.04);
-}
-
-.chat-scroll .scroll-bar:vertical .thumb {
-    -fx-background-color: rgba(124, 58, 237, 0.4);
-}
-
-.chat-scroll .scroll-bar:vertical .thumb:hover {
-    -fx-background-color: rgba(124, 58, 237, 0.6);
-}
-
-.user-bubble {
-    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
-    -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.4), 12, 0.3, 0, 2);
-}
-
-.user-bubble:hover {
-    -fx-effect: dropshadow(gaussian, rgba(124,58,237,0.6), 16, 0.4, 0, 3);
-}
-
-.bot-bubble {
-    -fx-background-color: rgba(18, 22, 45, 0.75);
-    -fx-border-color: rgba(255, 255, 255, 0.04);
-    -fx-text-fill: #e2e8f0;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 12, 0.2, 0, 2);
-}
-
-.bot-bubble:hover {
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 16, 0.3, 0, 3);
-}
-
-.bubble-header {
-    -fx-text-fill: #94a3b8;
-}
-
-.bubble-text {
-    -fx-text-fill: #e2e8f0;
-}
-
-.user-bubble .bubble-text,
-.user-bubble .bubble-header {
-    -fx-text-fill: white;
-}
-
-.answer-card {
-    -fx-border-color: rgba(255, 255, 255, 0.04);
-}
-
-.answer-h2 {
-    -fx-text-fill: #e2e8f0;
-}
-
-.answer-h3 {
-    -fx-text-fill: #e2e8f0;
-}
-
-.answer-text {
-    -fx-text-fill: #cbd5e1;
-}
-
-.answer-bullet {
-    -fx-text-fill: #cbd5e1;
-}
-
-.code-panel {
-    -fx-background-color: rgba(12, 14, 28, 0.9);
-    -fx-border-color: rgba(255, 255, 255, 0.04);
-}
-
-.code-badge {
-    -fx-background-color: linear-gradient(to right, #6d28d9, #7c3aed);
-    -fx-text-fill: white;
-}
-
-/* ---- Context Menu (popup-safe, no .window-root ancestor) ---- */
 .context-menu {
     -fx-background-color: #283063;
-    -fx-background-insets: 0;
-    -fx-background-radius: 8;
-    -fx-border-color: rgba(199, 208, 249, 0.16);
-    -fx-border-width: 1;
-    -fx-border-radius: 8;
-    -fx-effect: dropshadow(gaussian, rgba(10, 13, 34, 0.5), 14, 0.15, 0, 4);
+    -fx-border-color: rgba(199, 208, 249, 0.22);
 }
 
 .context-menu .menu-item:focused,
 .context-menu .radio-menu-item:focused,
 .context-menu .menu:focused,
 .context-menu .menu:showing {
-    -fx-background-color: rgba(184, 195, 242, 0.14);
+    -fx-background-color: rgba(184, 195, 242, 0.18);
 }
 
 .context-menu .menu-item .label,
@@ -237,5 +149,7 @@
 }
 
 .context-menu .separator .line {
-    -fx-border-color: rgba(199, 208, 249, 0.12);
+    -fx-border-color: rgba(199, 208, 249, 0.22);
 }
+
+

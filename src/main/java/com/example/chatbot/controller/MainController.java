@@ -31,19 +31,37 @@ import javafx.geometry.Rectangle2D;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MainController {
-    private static final Map<String, String> THEME_STYLESHEETS = Map.of(
-            "theme-dark-purple", "/styles/themes/dark/dark-purple.css",
-            "theme-dark-green", "/styles/themes/dark/dark-green.css",
-            "theme-light", "/styles/themes/light/light.css"
+    private static final String DEFAULT_THEME = "theme-dark-purple";
+
+    private static final Map<String, String> THEME_STYLESHEETS = Map.ofEntries(
+        Map.entry("theme-dark-purple", "/styles/themes/dark/dark-purple.css"),
+        Map.entry("theme-dark-green", "/styles/themes/dark/dark-green.css"),
+        Map.entry("theme-dark-ocean", "/styles/themes/dark/dark-ocean.css"),
+        Map.entry("theme-dark-ember", "/styles/themes/dark/dark-ember.css"),
+        Map.entry("theme-dark-slate", "/styles/themes/dark/dark-slate.css"),
+        Map.entry("theme-light", "/styles/themes/light/light.css"),
+        Map.entry("theme-light-sky", "/styles/themes/light/light-sky.css"),
+        Map.entry("theme-light-mint", "/styles/themes/light/light-mint.css"),
+        Map.entry("theme-light-rose", "/styles/themes/light/light-rose.css"),
+        Map.entry("theme-light-sand", "/styles/themes/light/light-sand.css")
     );
-    private static final Map<String, String> THEME_MODE = Map.of(
-            "theme-dark-purple", "theme-dark",
-            "theme-dark-green", "theme-dark",
-            "theme-light", "theme-light"
+
+    private static final Map<String, String> THEME_MODE = Map.ofEntries(
+        Map.entry("theme-dark-purple", "theme-dark"),
+        Map.entry("theme-dark-green", "theme-dark"),
+        Map.entry("theme-dark-ocean", "theme-dark"),
+        Map.entry("theme-dark-ember", "theme-dark"),
+        Map.entry("theme-dark-slate", "theme-dark"),
+        Map.entry("theme-light", "theme-light"),
+        Map.entry("theme-light-sky", "theme-light"),
+        Map.entry("theme-light-mint", "theme-light"),
+        Map.entry("theme-light-rose", "theme-light"),
+        Map.entry("theme-light-sand", "theme-light")
     );
 
     // ================= SIDEBAR + CONTENT NODES =================
@@ -72,7 +90,21 @@ public class MainController {
     @FXML
     private RadioMenuItem themeDarkGreenItem;
     @FXML
+    private RadioMenuItem themeDarkOceanItem;
+    @FXML
+    private RadioMenuItem themeDarkEmberItem;
+    @FXML
+    private RadioMenuItem themeDarkSlateItem;
+    @FXML
     private RadioMenuItem themeLightItem;
+    @FXML
+    private RadioMenuItem themeLightSkyItem;
+    @FXML
+    private RadioMenuItem themeLightMintItem;
+    @FXML
+    private RadioMenuItem themeLightRoseItem;
+    @FXML
+    private RadioMenuItem themeLightSandItem;
     @FXML
     private Button minimizeButton;
     @FXML
@@ -85,9 +117,10 @@ public class MainController {
     private Stage stage;
     private double dragOffsetX;
     private double dragOffsetY;
-        private Rectangle windowRootClip;
+    private Rectangle windowRootClip;
     private Rectangle shellClip;
     private String activeThemeStylesheet;
+    private final Map<RadioMenuItem, String> themeMenuBindings = new LinkedHashMap<>();
 
     // ================= INITIALIZATION =================
     @FXML
@@ -111,7 +144,7 @@ public class MainController {
         fixPopupTransparency();
 
         // ---- Default Theme + First Conversation ----
-        applyTheme("theme-dark-purple");
+        applyTheme(DEFAULT_THEME);
 
         Conversation first = chatService.createConversation();
         chatList.getItems().add(first);
@@ -443,27 +476,39 @@ public class MainController {
     }
 
     // ================= THEME MENU =================
-    private void wireThemeMenu() {        // ---- Mutually Exclusive Theme Items ----
+    private void wireThemeMenu() {
+        // ---- Mutually Exclusive Theme Items ----
         ToggleGroup group = new ToggleGroup();
-        themeDarkPurpleItem.setToggleGroup(group);
-        themeDarkGreenItem.setToggleGroup(group);
-        themeLightItem.setToggleGroup(group);
+
+        themeMenuBindings.clear();
+        themeMenuBindings.put(themeDarkPurpleItem, "theme-dark-purple");
+        themeMenuBindings.put(themeDarkGreenItem, "theme-dark-green");
+        themeMenuBindings.put(themeDarkOceanItem, "theme-dark-ocean");
+        themeMenuBindings.put(themeDarkEmberItem, "theme-dark-ember");
+        themeMenuBindings.put(themeDarkSlateItem, "theme-dark-slate");
+        themeMenuBindings.put(themeLightItem, "theme-light");
+        themeMenuBindings.put(themeLightSkyItem, "theme-light-sky");
+        themeMenuBindings.put(themeLightMintItem, "theme-light-mint");
+        themeMenuBindings.put(themeLightRoseItem, "theme-light-rose");
+        themeMenuBindings.put(themeLightSandItem, "theme-light-sand");
+
+        for (RadioMenuItem item : themeMenuBindings.keySet()) {
+            item.setToggleGroup(group);
+        }
 
         // ---- Theme Switch Actions ----
-        themeDarkPurpleItem.setOnAction(e -> applyTheme("theme-dark-purple"));
-        themeDarkGreenItem.setOnAction(e -> applyTheme("theme-dark-green"));
-        themeLightItem.setOnAction(e -> applyTheme("theme-light"));
+        themeMenuBindings.forEach((item, themeKey) -> item.setOnAction(e -> applyTheme(themeKey)));
     }
 
     // ================= THEME APPLY =================
     private void applyTheme(String themeKey) {
-        String modeClass = THEME_MODE.getOrDefault(themeKey, "theme-dark");
+        String resolvedTheme = THEME_STYLESHEETS.containsKey(themeKey) ? themeKey : DEFAULT_THEME;
+        String modeClass = THEME_MODE.getOrDefault(resolvedTheme, "theme-dark");
         windowRoot.getStyleClass().removeAll("theme-dark", "theme-light");
         windowRoot.getStyleClass().add(modeClass);
-        themeDarkPurpleItem.setSelected("theme-dark-purple".equals(themeKey));
-        themeDarkGreenItem.setSelected("theme-dark-green".equals(themeKey));
-        themeLightItem.setSelected("theme-light".equals(themeKey));
-        applyThemeStylesheet(themeKey);
+
+        themeMenuBindings.forEach((item, key) -> item.setSelected(key.equals(resolvedTheme)));
+        applyThemeStylesheet(resolvedTheme);
     }
 
     private void applyThemeStylesheet(String themeClass) {

@@ -56,7 +56,8 @@ public class ChatService {
             - Use numbered lists for methods or types.
             - Use bullet points for explanations.
             - Keep paragraphs short (2-3 lines max).
-            - Use proper fenced code blocks with language tags.
+            - Do NOT generate code unless the user explicitly asks for code, implementation, snippet, or example.
+            - When code is explicitly requested, use proper fenced code blocks with language tags.
             - Do not use emojis.
             - Do not add conversational text.
             - Do not repeat the question.

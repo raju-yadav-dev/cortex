@@ -820,6 +820,15 @@
     -fx-line-spacing: 1px;
 }
 
+.message-generating-text {
+    -fx-text-fill: -app-text-secondary;
+    -fx-font-style: italic;
+}
+
+.generating-bubble {
+    -fx-opacity: 0.95;
+}
+
 .message-markdown {
     -fx-fill-width: true;
 }
