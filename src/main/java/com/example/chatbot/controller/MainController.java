@@ -22,9 +22,11 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.geometry.Rectangle2D;
 
 import java.io.IOException;
@@ -106,6 +108,7 @@ public class MainController {
         wireWindowButtons();
         wireThemeMenu();
         loadTitleBarIcon();
+        fixPopupTransparency();
 
         // ---- Default Theme + First Conversation ----
         applyTheme("theme-dark-purple");
@@ -408,9 +411,39 @@ public class MainController {
         }
     }
 
+    // ================= POPUP ROUNDED CORNERS =================
+    private void fixPopupTransparency() {
+        // On Windows, popup windows (context menus) have a native opaque rectangular
+        // background. Setting the scene fill to transparent removes that background
+        // so CSS border-radius actually produces visible rounded corners.
+        Window.getWindows().addListener((javafx.collections.ListChangeListener<Window>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (Window w : change.getAddedSubList()) {
+                        if (w instanceof javafx.stage.PopupWindow) {
+                            if (w.getScene() != null) {
+                                w.getScene().setFill(Color.TRANSPARENT);
+                            }
+                            w.sceneProperty().addListener((obs, oldScene, newScene) -> {
+                                if (newScene != null) {
+                                    newScene.setFill(Color.TRANSPARENT);
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        });
+        // Also handle any popups already open
+        for (Window w : Window.getWindows()) {
+            if (w instanceof javafx.stage.PopupWindow && w.getScene() != null) {
+                w.getScene().setFill(Color.TRANSPARENT);
+            }
+        }
+    }
+
     // ================= THEME MENU =================
-    private void wireThemeMenu() {
-        // ---- Mutually Exclusive Theme Items ----
+    private void wireThemeMenu() {        // ---- Mutually Exclusive Theme Items ----
         ToggleGroup group = new ToggleGroup();
         themeDarkPurpleItem.setToggleGroup(group);
         themeDarkGreenItem.setToggleGroup(group);

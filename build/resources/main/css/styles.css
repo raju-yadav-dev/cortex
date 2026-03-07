@@ -75,7 +75,6 @@
 .window-root.theme-dark .title-bar,
 .window-root.theme-dark .bot-bubble,
 .window-root.theme-dark .input-shell,
-.window-root.theme-dark .context-menu,
 .window-root.theme-dark .new-chat-button {
     -fx-background-color: #283063;
     -fx-border-color: rgba(199, 208, 249, 0.16);
@@ -268,7 +267,6 @@
 .window-root.theme-light .title-bar,
 .window-root.theme-light .bot-bubble,
 .window-root.theme-light .input-shell,
-.window-root.theme-light .context-menu,
 .window-root.theme-light .new-chat-button {
     -fx-background-color: rgba(246, 241, 249, 0.88);
     -fx-border-color: rgba(176, 164, 196, 0.18);
@@ -512,26 +510,39 @@
 }
 
 .context-menu {
-    -fx-background-color: -app-surface;
-    -fx-border-color: -app-border;
-    -fx-border-width: 1;
+    -fx-background-color: #283063;
+    -fx-background-insets: 0;
     -fx-background-radius: 8;
+    -fx-border-color: rgba(199, 208, 249, 0.16);
+    -fx-border-width: 1;
     -fx-border-radius: 8;
+    -fx-padding: 4 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 14, 0.15, 0, 4);
 }
 
-.menu-item,
-.radio-menu-item {
+.context-menu .menu-item,
+.context-menu .radio-menu-item,
+.context-menu .menu {
     -fx-background-color: transparent;
 }
 
-.menu-item .label,
-.radio-menu-item .label {
-    -fx-text-fill: -app-text-primary;
+.context-menu .menu-item .label,
+.context-menu .radio-menu-item .label,
+.context-menu .menu .label {
+    -fx-text-fill: #eef2ff;
 }
 
-.menu-item:focused,
-.radio-menu-item:focused {
-    -fx-background-color: -app-muted-hover;
+.context-menu .menu-item:focused,
+.context-menu .radio-menu-item:focused,
+.context-menu .menu:focused,
+.context-menu .menu:showing {
+    -fx-background-color: rgba(184, 195, 242, 0.14);
+}
+
+.context-menu .separator .line {
+    -fx-border-color: rgba(199, 208, 249, 0.12);
+    -fx-border-width: 0.5 0 0 0;
+    -fx-padding: 0 6 0 6;
 }
 
 .title-control {

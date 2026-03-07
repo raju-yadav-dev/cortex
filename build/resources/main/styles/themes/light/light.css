@@ -27,7 +27,7 @@
 
 /* ---- Theme Styles ---- */
 
-.root {
+.window-root {
     -fx-background-color: linear-gradient(to bottom right, #f8fafb, #fafbfc);
 }
 
@@ -209,4 +209,32 @@
 .code-badge {
     -fx-background-color: linear-gradient(to right, #6366f1, #818cf8);
     -fx-text-fill: white;
+}
+
+/* ---- Context Menu (popup-safe, no .window-root ancestor) ---- */
+.context-menu {
+    -fx-background-color: rgba(246, 241, 249, 0.97);
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(176, 164, 196, 0.22);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(54, 40, 74, 0.14), 14, 0.15, 0, 4);
+}
+
+.context-menu .menu-item:focused,
+.context-menu .radio-menu-item:focused,
+.context-menu .menu:focused,
+.context-menu .menu:showing {
+    -fx-background-color: rgba(146, 124, 186, 0.12);
+}
+
+.context-menu .menu-item .label,
+.context-menu .radio-menu-item .label,
+.context-menu .menu .label {
+    -fx-text-fill: #2a1f35;
+}
+
+.context-menu .separator .line {
+    -fx-border-color: rgba(176, 164, 196, 0.18);
 }
