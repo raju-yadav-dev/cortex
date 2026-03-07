@@ -49,14 +49,15 @@ public class MainApp extends Application {
         }
         primaryStage.setResizable(true);
 
-        // ---- Fit Initial Window Into Current Screen ----
+        // ---- Fit Initial Window Into Current Screen (60% of screen, centered) ----
         Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();
         
-        // Set window to fill visual bounds (like maximized but without Windows border issues)
-        primaryStage.setX(visualBounds.getMinX());
-        primaryStage.setY(visualBounds.getMinY());
-        primaryStage.setWidth(visualBounds.getWidth());
-        primaryStage.setHeight(visualBounds.getHeight());
+        double startWidth = visualBounds.getWidth() * 0.6;
+        double startHeight = visualBounds.getHeight() * 0.6;
+        primaryStage.setWidth(startWidth);
+        primaryStage.setHeight(startHeight);
+        primaryStage.setX(visualBounds.getMinX() + (visualBounds.getWidth() - startWidth) / 2);
+        primaryStage.setY(visualBounds.getMinY() + (visualBounds.getHeight() - startHeight) / 2);
         
         double maxStartupWidth = Math.max(640, visualBounds.getWidth());
         double maxStartupHeight = Math.max(480, visualBounds.getHeight());

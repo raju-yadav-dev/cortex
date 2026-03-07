@@ -1,0 +1,216 @@
+/* ============================================================================ */
+/* CORTEX - DARK GREEN THEME                                                   */
+/* ============================================================================ */
+
+/* ---- Color Tokens ---- */
+:root {
+    -fx-accent-primary: #059669;
+    -fx-accent-primary-hover: #10b981;
+    -fx-accent-primary-active: #34d399;
+    -fx-text-primary: #e2f8f0;
+    -fx-text-secondary: #94b8a8;
+    -fx-text-muted: #9cb3a3;
+    -fx-bg-root-start: #1a2e2d;
+    -fx-bg-root-mid: #1b3a2e;
+    -fx-bg-root-linear: linear-gradient(to bottom right, #0b1713, #0f1f1a, #0a1410);
+    -fx-bg-sidebar: linear-gradient(to bottom, #0b1713, #0f1f1a);
+    -fx-bg-dark: rgba(15, 31, 26, 0.75);
+    -fx-bg-darker: rgba(18, 36, 30, 0.8);
+    -fx-bg-code: rgba(10, 20, 16, 0.9);
+    -fx-border-subtle: rgba(16, 185, 129, 0.06);
+    -fx-border-accent: rgba(16, 185, 129, 0.15);
+    -fx-border-accent-hover: rgba(16, 185, 129, 0.4);
+    -fx-code-text: #d4e4d4;
+    -fx-code-light: #cbd9d1;
+    -fx-code-content: #cbd9d1;
+    -fx-shadow-accent: rgba(16, 185, 129, 0.5);
+    -fx-shadow-accent-hover: rgba(16, 185, 129, 0.7);
+    -fx-shadow-accent-light: rgba(16, 185, 129, 0.3);
+}
+
+/* ---- Theme Styles ---- */
+
+.root {
+    -fx-background-color:
+        radial-gradient(radius 130% at 20% 0%, #1a2e2d 0%, transparent 60%),
+        radial-gradient(radius 120% at 90% 100%, #1b3a2e 0%, transparent 65%),
+        linear-gradient(to bottom right, #0b1713, #0f1f1a, #0a1410);
+}
+
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #0b1713, #0f1f1a);
+}
+
+.logo {
+    -fx-text-fill: #e2f8f0;
+}
+
+.logo-subtitle {
+    -fx-text-fill: #94b8a8;
+}
+
+.divider {
+    -fx-background-color: rgba(16, 185, 129, 0.06);
+}
+
+.button-accent {
+    -fx-background-color: linear-gradient(to right, #059669, #10b981);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(16,185,129,0.5), 18, 0.4, 0, 0);
+}
+
+.button-accent:hover {
+    -fx-background-color: linear-gradient(to right, #10b981, #34d399);
+}
+
+.new-chat-button {
+    -fx-background-color: linear-gradient(to right, #059669, #10b981);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(16,185,129,0.5), 18, 0.4, 0, 0);
+}
+
+.new-chat-button:hover {
+    -fx-background-color: linear-gradient(to right, #10b981, #34d399);
+    -fx-effect: dropshadow(gaussian, rgba(16,185,129,0.7), 22, 0.5, 0, 2);
+}
+
+.new-chat-button:pressed {
+    -fx-effect: dropshadow(gaussian, rgba(16,185,129,0.3), 12, 0.2, 0, 0);
+}
+
+.theme-button {
+    -fx-background-color: rgba(16, 185, 129, 0.15);
+    -fx-text-fill: #e2f8f0;
+    -fx-border-color: rgba(16, 185, 129, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.3), 8, 0.2, 0, 0);
+}
+
+.theme-button:hover {
+    -fx-background-color: rgba(16, 185, 129, 0.25);
+    -fx-border-color: rgba(16, 185, 129, 0.6);
+    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.5), 12, 0.3, 0, 1);
+}
+
+.theme-button:pressed {
+    -fx-background-color: rgba(16, 185, 129, 0.35);
+    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.6), 14, 0.4, 0, 2);
+}
+
+.history-list {
+    -fx-border-color: rgba(16, 185, 129, 0.15) transparent transparent transparent;
+}
+
+.history-list .list-cell {
+    -fx-text-fill: #e2f8f0;
+}
+
+.history-list .list-cell:filled:selected,
+.history-list .list-cell:filled:hover {
+    -fx-background-color: rgba(16, 185, 129, 0.12);
+}
+
+.sidebar-search {
+    -fx-background-color: rgba(18, 36, 30, 0.8);
+    -fx-border-color: rgba(16, 185, 129, 0.08);
+    -fx-prompt-text-fill: #94b8a8;
+    -fx-text-fill: #e2f8f0;
+}
+
+.sidebar-search:focused {
+    -fx-border-color: rgba(16, 185, 129, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.3), 10, 0.2, 0, 0);
+}
+
+.header-search {
+    -fx-background-color: rgba(15, 31, 26, 0.75);
+    -fx-border-color: rgba(16, 185, 129, 0.06);
+}
+
+.search-field {
+    -fx-background-color: rgba(18, 36, 30, 0.8);
+    -fx-prompt-text-fill: #94b8a8;
+    -fx-text-fill: #e2f8f0;
+    -fx-border-color: rgba(16, 185, 129, 0.08);
+}
+
+.search-field:focused {
+    -fx-border-color: rgba(16, 185, 129, 0.4);
+    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.3), 10, 0.2, 0, 0);
+}
+
+.chat-container {
+    -fx-background-color: rgba(15, 31, 26, 0.75);
+    -fx-border-color: rgba(16, 185, 129, 0.06);
+}
+
+.chat-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(16, 185, 129, 0.4);
+}
+
+.chat-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(16, 185, 129, 0.6);
+}
+
+.user-bubble {
+    -fx-background-color: linear-gradient(to right, #059669, #10b981);
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(16,185,129,0.4), 12, 0.3, 0, 2);
+}
+
+.user-bubble:hover {
+    -fx-effect: dropshadow(gaussian, rgba(16,185,129,0.6), 16, 0.4, 0, 3);
+}
+
+.bot-bubble {
+    -fx-background-color: rgba(15, 31, 26, 0.75);
+    -fx-border-color: rgba(16, 185, 129, 0.06);
+    -fx-text-fill: #e2f8f0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 12, 0.2, 0, 2);
+}
+
+.bot-bubble:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 16, 0.3, 0, 3);
+}
+
+.bubble-header {
+    -fx-text-fill: #94b8a8;
+}
+
+.bubble-text {
+    -fx-text-fill: #e2f8f0;
+}
+
+.user-bubble .bubble-text,
+.user-bubble .bubble-header {
+    -fx-text-fill: white;
+}
+
+.answer-card {
+    -fx-border-color: rgba(16, 185, 129, 0.06);
+}
+
+.answer-h2 {
+    -fx-text-fill: #e2f8f0;
+}
+
+.answer-h3 {
+    -fx-text-fill: #e2f8f0;
+}
+
+.answer-text {
+    -fx-text-fill: #cbd9d1;
+}
+
+.answer-bullet {
+    -fx-text-fill: #cbd9d1;
+}
+
+.code-panel {
+    -fx-background-color: rgba(10, 20, 16, 0.9);
+    -fx-border-color: rgba(16, 185, 129, 0.06);
+}
+
+.code-badge {
+    -fx-background-color: linear-gradient(to right, #059669, #10b981);
+    -fx-text-fill: white;
+}

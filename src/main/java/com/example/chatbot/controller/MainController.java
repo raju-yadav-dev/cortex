@@ -33,11 +33,15 @@ import java.util.List;
 import java.util.Map;
 
 public class MainController {
-    private static final String DARK_THEME_CSS = "/styles/themes/Dark-themes/dark-purple/theme.css";
-    private static final String LIGHT_THEME_CSS = "/styles/themes/Light-themes/light/theme.css";
     private static final Map<String, String> THEME_STYLESHEETS = Map.of(
-            "theme-dark", DARK_THEME_CSS,
-            "theme-light", LIGHT_THEME_CSS
+            "theme-dark-purple", "/styles/themes/dark/dark-purple.css",
+            "theme-dark-green", "/styles/themes/dark/dark-green.css",
+            "theme-light", "/styles/themes/light/light.css"
+    );
+    private static final Map<String, String> THEME_MODE = Map.of(
+            "theme-dark-purple", "theme-dark",
+            "theme-dark-green", "theme-dark",
+            "theme-light", "theme-light"
     );
 
     // ================= SIDEBAR + CONTENT NODES =================
@@ -62,7 +66,9 @@ public class MainController {
     @FXML
     private MenuButton settingsButton;
     @FXML
-    private RadioMenuItem themeDarkItem;
+    private RadioMenuItem themeDarkPurpleItem;
+    @FXML
+    private RadioMenuItem themeDarkGreenItem;
     @FXML
     private RadioMenuItem themeLightItem;
     @FXML
@@ -102,7 +108,7 @@ public class MainController {
         loadTitleBarIcon();
 
         // ---- Default Theme + First Conversation ----
-        applyTheme("theme-dark");
+        applyTheme("theme-dark-purple");
 
         Conversation first = chatService.createConversation();
         chatList.getItems().add(first);
@@ -266,6 +272,10 @@ public class MainController {
         if (appShell == null || windowRoot == null) {
             return;
         }
+        // Update maximize button icon: □ (maximize) ↔ ❐ (restore)
+        if (maximizeButton != null) {
+            maximizeButton.setText(maximized ? "\u2750" : "\u25A1");
+        }
         if (maximized) {
             if (!appShell.getStyleClass().contains("maximized")) {
                 appShell.getStyleClass().add("maximized");
@@ -402,21 +412,25 @@ public class MainController {
     private void wireThemeMenu() {
         // ---- Mutually Exclusive Theme Items ----
         ToggleGroup group = new ToggleGroup();
-        themeDarkItem.setToggleGroup(group);
+        themeDarkPurpleItem.setToggleGroup(group);
+        themeDarkGreenItem.setToggleGroup(group);
         themeLightItem.setToggleGroup(group);
 
         // ---- Theme Switch Actions ----
-        themeDarkItem.setOnAction(e -> applyTheme("theme-dark"));
+        themeDarkPurpleItem.setOnAction(e -> applyTheme("theme-dark-purple"));
+        themeDarkGreenItem.setOnAction(e -> applyTheme("theme-dark-green"));
         themeLightItem.setOnAction(e -> applyTheme("theme-light"));
     }
 
     // ================= THEME APPLY =================
-    private void applyTheme(String themeClass) {
+    private void applyTheme(String themeKey) {
+        String modeClass = THEME_MODE.getOrDefault(themeKey, "theme-dark");
         windowRoot.getStyleClass().removeAll("theme-dark", "theme-light");
-        windowRoot.getStyleClass().add(themeClass);
-        themeDarkItem.setSelected("theme-dark".equals(themeClass));
-        themeLightItem.setSelected("theme-light".equals(themeClass));
-        applyThemeStylesheet(themeClass);
+        windowRoot.getStyleClass().add(modeClass);
+        themeDarkPurpleItem.setSelected("theme-dark-purple".equals(themeKey));
+        themeDarkGreenItem.setSelected("theme-dark-green".equals(themeKey));
+        themeLightItem.setSelected("theme-light".equals(themeKey));
+        applyThemeStylesheet(themeKey);
     }
 
     private void applyThemeStylesheet(String themeClass) {

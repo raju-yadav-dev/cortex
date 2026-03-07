@@ -1,16 +1,36 @@
 /* ============================================================================ */
-/* CORTEX - LIGHT THEME (Complete) */
+/* CORTEX - LIGHT THEME                                                        */
 /* ============================================================================ */
 
-/* Import color tokens */
-@import "./_tokens.css";
+/* ---- Color Tokens ---- */
+:root {
+    -fx-accent-primary: #6366f1;
+    -fx-accent-primary-hover: #818cf8;
+    -fx-text-primary: #1e293b;
+    -fx-text-secondary: #64748b;
+    -fx-text-muted: #94a3b8;
+    -fx-bg-root-linear: linear-gradient(to bottom right, #f8fafb, #fafbfc);
+    -fx-bg-sidebar: #f3f4f8;
+    -fx-bg-dark: #ffffff;
+    -fx-bg-darker: #f1f5f9;
+    -fx-bg-code: #f9fafb;
+    -fx-border-subtle: rgba(99, 102, 241, 0.08);
+    -fx-border-accent: rgba(99, 102, 241, 0.15);
+    -fx-border-accent-hover: rgba(99, 102, 241, 0.2);
+    -fx-code-text: #2b2b2b;
+    -fx-code-light: #333333;
+    -fx-code-content: #333333;
+    -fx-shadow-accent: rgba(99, 102, 241, 0.2);
+    -fx-shadow-accent-hover: rgba(99, 102, 241, 0.3);
+    -fx-shadow-accent-light: rgba(99, 102, 241, 0.1);
+}
 
-/* ROOT */
+/* ---- Theme Styles ---- */
+
 .root {
     -fx-background-color: linear-gradient(to bottom right, #f8fafb, #fafbfc);
 }
 
-/* SIDEBAR */
 .sidebar {
     -fx-background-color: #f3f4f8;
 }
@@ -27,7 +47,6 @@
     -fx-background-color: rgba(99, 102, 241, 0.08);
 }
 
-/* BUTTONS */
 .button-accent {
     -fx-background-color: linear-gradient(to right, #6366f1, #818cf8);
     -fx-text-fill: white;
@@ -54,7 +73,6 @@
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.2), 8, 0.2, 0, 0);
 }
 
-/* THEME BUTTON */
 .theme-button {
     -fx-background-color: rgba(124, 58, 237, 0.08);
     -fx-text-fill: #1e293b;
@@ -73,7 +91,6 @@
     -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.3), 10, 0.3, 0, 1);
 }
 
-/* HISTORY LIST */
 .history-list {
     -fx-border-color: rgba(99, 102, 241, 0.08) transparent transparent transparent;
 }
@@ -87,7 +104,6 @@
     -fx-background-color: rgba(124, 58, 237, 0.06);
 }
 
-/* SEARCH FIELDS */
 .sidebar-search {
     -fx-background-color: #f1f5f9;
     -fx-border-color: rgba(99, 102, 241, 0.15);
@@ -118,13 +134,11 @@
     -fx-effect: dropshadow(gaussian, rgba(99, 102, 241, 0.2), 8, 0.2, 0, 0);
 }
 
-/* CHAT CONTAINER */
 .chat-container {
     -fx-background-color: #ffffff;
     -fx-border-color: rgba(99, 102, 241, 0.08);
 }
 
-/* SCROLL BAR */
 .chat-scroll .scroll-bar:vertical .thumb {
     -fx-background-color: rgba(99, 102, 241, 0.25);
 }
@@ -133,7 +147,6 @@
     -fx-background-color: rgba(99, 102, 241, 0.4);
 }
 
-/* MESSAGE BUBBLES */
 .user-bubble {
     -fx-background-color: linear-gradient(to right, #6366f1, #818cf8);
     -fx-text-fill: white;
@@ -168,7 +181,6 @@
     -fx-text-fill: white;
 }
 
-/* ANSWER CARDS */
 .answer-card {
     -fx-border-color: rgba(99, 102, 241, 0.08);
 }
@@ -189,7 +201,6 @@
     -fx-text-fill: #333333;
 }
 
-/* CODE */
 .code-panel {
     -fx-background-color: #f9fafb;
     -fx-border-color: rgba(99, 102, 241, 0.08);
@@ -198,95 +209,4 @@
 .code-badge {
     -fx-background-color: linear-gradient(to right, #6366f1, #818cf8);
     -fx-text-fill: white;
-}
-
-.code-text {
-    -fx-text-fill: #2b2b2b;
-}
-
-.copy-button {
-    -fx-background-color: rgba(124, 58, 237, 0.08);
-    -fx-text-fill: #1e293b;
-    -fx-border-color: rgba(99, 102, 241, 0.1);
-}
-
-.copy-button:hover {
-    -fx-background-color: rgba(124, 58, 237, 0.15);
-}
-
-/* INPUT FIELDS */
-.text-field, .text-area {
-    -fx-background-color: #f1f5f9;
-    -fx-text-fill: #1e293b;
-    -fx-border-color: rgba(99, 102, 241, 0.15);
-    -fx-prompt-text-fill: #94a3b8;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 6, 0.1, 0, 1);
-}
-
-.text-field:focused, .text-area:focused {
-    -fx-border-color: rgba(99, 102, 241, 0.3);
-    -fx-effect: dropshadow(gaussian, rgba(99, 102, 241, 0.2), 8, 0.2, 0, 1);
-}
-
-.input-area {
-    -fx-background-color: transparent;
-    -fx-text-fill: #1e293b;
-    -fx-prompt-text-fill: #94a3b8;
-    -fx-border-color: rgba(99, 102, 241, 0.15);
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 6, 0.1, 0, 1);
-}
-
-.input-area:focused {
-    -fx-background-color: transparent;
-    -fx-border-color: rgba(99, 102, 241, 0.15);
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 6, 0.1, 0, 1);
-}
-
-.input-area .content,
-.input-area .scroll-pane,
-.input-area .scroll-pane .viewport,
-.input-area .scroll-pane .content {
-    -fx-background-color: transparent;
-}
-
-/* SEND BUTTON */
-.send-icon-button {
-    -fx-background-color: linear-gradient(to right, #6366f1, #818cf8);
-    -fx-text-fill: white;
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.3), 10, 0.2, 0, 1);
-}
-
-.send-icon-button:hover {
-    -fx-background-color: linear-gradient(to right, #818cf8, #a5b4fc);
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.5), 14, 0.3, 0, 2);
-}
-
-.send-icon-button:pressed {
-    -fx-effect: dropshadow(gaussian, rgba(99,102,241,0.2), 6, 0.1, 0, 0);
-}
-
-/* TEXT LABELS */
-.label {
-    -fx-text-fill: #1e293b;
-}
-
-.label-muted {
-    -fx-text-fill: #64748b;
-}
-
-.typing-label {
-    -fx-text-fill: #94a3b8;
-}
-
-.chat-title {
-    -fx-text-fill: #1e293b;
-}
-
-.chat-subtitle {
-    -fx-text-fill: #64748b;
-}
-
-/* APP ROOT */
-.app-root {
-    -fx-background-color: transparent;
 }
