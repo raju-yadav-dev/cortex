@@ -3,8 +3,6 @@ plugins {
     id 'application'
 }
 
-import org.gradle.api.tasks.bundling.Jar
-
 repositories {
     mavenCentral()   // ⭐ REQUIRED so Gradle can download JavaFX
 }
@@ -27,6 +25,9 @@ dependencies {
     // Export dependencies
     implementation 'org.apache.pdfbox:pdfbox:2.0.29'
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
+
+    // JSON parsing
+    implementation 'com.google.code.gson:gson:2.10.1'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'

@@ -79,6 +79,7 @@ public class ChatService {
     private final String apiBaseUrl;
     private final String model;
     private final String apiKey;
+    private final SettingsManager settingsManager = SettingsManager.getInstance();
 
     public ChatService() {
         Properties props = loadAppProperties();
@@ -130,6 +131,19 @@ public class ChatService {
         }
     }
 
+    /**
+     * Ask a contextual question about selected text. Returns a future with the AI response.
+     */
+    public CompletableFuture<String> askAboutSelection(String selectedText, String question) {
+        return CompletableFuture.supplyAsync(() -> {
+            String contextPrompt = "The user selected the following text:\n\n"
+                    + selectedText + "\n\nUser question: " + question;
+            List<Message> context = List.of(new Message(Message.Sender.USER, contextPrompt));
+            Message reply = requestAssistantReply(context);
+            return reply.getContent();
+        }, apiExecutor);
+    }
+
     private Message requestAssistantReply(List<Message> historySnapshot) {
         if (apiKey == null || apiKey.isBlank() || "PASTE_YOUR_API_KEY_HERE".equals(apiKey)) {
             return new Message(Message.Sender.BOT, """
@@ -175,12 +189,18 @@ public class ChatService {
                 .sorted(Comparator.comparing(Message::getTimestamp))
                 .toList();
 
+        double temperature = settingsManager.getDouble("ai.temperature", 0.4);
+        int maxTokens = settingsManager.getInt("ai.maxTokens", 4096);
+        String customPrompt = settingsManager.getString("ai.systemPrompt", "");
+        String effectivePrompt = (customPrompt != null && !customPrompt.isBlank()) ? customPrompt : SYSTEM_PROMPT;
+
         StringBuilder builder = new StringBuilder();
         builder.append("{");
         builder.append("\"model\":\"").append(jsonEscape(model)).append("\",");
-        builder.append("\"temperature\":0.4,");
+        builder.append("\"temperature\":").append(temperature).append(",");
+        builder.append("\"max_tokens\":").append(maxTokens).append(",");
         builder.append("\"messages\":[");
-        builder.append("{\"role\":\"system\",\"content\":\"").append(jsonEscape(SYSTEM_PROMPT)).append("\"}");
+        builder.append("{\"role\":\"system\",\"content\":\"").append(jsonEscape(effectivePrompt)).append("\"}");
 
         for (Message msg : sorted) {
             String role = msg.getSender() == Message.Sender.USER ? "user" : "assistant";

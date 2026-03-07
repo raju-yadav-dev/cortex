@@ -46,6 +46,10 @@
                                 <Button fx:id="terminalToggleButton" text=">_" focusTraversable="false" styleClass="terminal-toggle-button" />
                                 <MenuButton fx:id="exportButton" text="⋯" styleClass="overflow-menu-button" focusTraversable="false">
                                     <items>
+                                        <MenuItem text="Copy chat as Markdown" onAction="#copyAsMarkdown" />
+                                        <MenuItem text="Copy chat as Text" onAction="#copyAsText" />
+                                        <MenuItem text="Screenshot to Clipboard" onAction="#screenshotToClipboard" />
+                                        <SeparatorMenuItem />
                                         <MenuItem text="Export as Text (.txt)" onAction="#exportAsText" />
                                         <MenuItem text="Export as Markdown (.md)" onAction="#exportAsMarkdown" />
                                         <MenuItem text="Export as PDF (.pdf)" onAction="#exportAsPDF" />

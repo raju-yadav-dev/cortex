@@ -8,9 +8,13 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBase;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.Cursor;
 import javafx.scene.image.Image;
@@ -34,6 +38,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.example.chatbot.service.SettingsManager;
 
 public class MainController {
     private static final String DEFAULT_THEME = "theme-dark-purple";
@@ -84,7 +90,11 @@ public class MainController {
 
     // ================= TITLE BAR ACTION NODES =================
     @FXML
+    private MenuButton profileButton;
+    @FXML
     private MenuButton settingsButton;
+    @FXML
+    private Menu themeMenu;
     @FXML
     private RadioMenuItem themeDarkPurpleItem;
     @FXML
@@ -120,7 +130,9 @@ public class MainController {
     private Rectangle windowRootClip;
     private Rectangle shellClip;
     private String activeThemeStylesheet;
+    private String committedThemeKey;
     private final Map<RadioMenuItem, String> themeMenuBindings = new LinkedHashMap<>();
+    private final SettingsManager settingsManager = SettingsManager.getInstance();
 
     // ================= INITIALIZATION =================
     @FXML
@@ -140,11 +152,15 @@ public class MainController {
         applyRoundedClip();
         wireWindowButtons();
         wireThemeMenu();
+        addMenuIcons();
+        addProfileMenuIcons();
+        setButtonIcons();
         loadTitleBarIcon();
         fixPopupTransparency();
 
-        // ---- Default Theme + First Conversation ----
-        applyTheme(DEFAULT_THEME);
+        // ---- Default Theme (from saved settings) + First Conversation ----
+        committedThemeKey = settingsManager.getString("appearance.theme", DEFAULT_THEME);
+        applyTheme(committedThemeKey);
 
         Conversation first = chatService.createConversation();
         chatList.getItems().add(first);
@@ -496,8 +512,412 @@ public class MainController {
             item.setToggleGroup(group);
         }
 
-        // ---- Theme Switch Actions ----
-        themeMenuBindings.forEach((item, themeKey) -> item.setOnAction(e -> applyTheme(themeKey)));
+        // ---- Theme Switch Actions (commits the theme) ----
+        themeMenuBindings.forEach((item, themeKey) -> item.setOnAction(e -> {
+            committedThemeKey = themeKey;
+            applyTheme(themeKey);
+            settingsManager.set("appearance.theme", themeKey);
+            settingsManager.save();
+        }));
+
+        // ---- Hover Preview: temporarily show theme on hover ----
+        if (themeMenu != null) {
+            themeMenu.setOnShowing(e -> Platform.runLater(() -> attachThemeHoverPreview(themeMenu)));
+            themeMenu.setOnHidden(e -> applyTheme(committedThemeKey));
+        }
+    }
+
+    // ================= MENU ICONS =================
+    private void addMenuIcons() {
+        // Add icons to each top-level menu item
+        for (MenuItem item : settingsButton.getItems()) {
+            if (item instanceof SeparatorMenuItem) continue;
+            String text = item.getText();
+            if (text == null) continue;
+            switch (text) {
+                case "Preferences" -> item.setGraphic(createMenuIcon("\u2699")); // ⚙ (but different from gear button)
+                case "Themes" -> item.setGraphic(createMenuIcon("\uD83C\uDFA8")); // 🎨
+                case "Settings" -> item.setGraphic(createMenuIcon("\uD83D\uDD27")); // 🔧
+                case "About" -> item.setGraphic(createMenuIcon("\u2139")); // ℹ
+            }
+        }
+    }
+
+    private Label createMenuIcon(String icon) {
+        Label label = new Label(icon);
+        label.getStyleClass().add("gear-menu-icon");
+        return label;
+    }
+
+    // ================= THEME HOVER PREVIEW =================
+    private void attachThemeHoverPreview(Menu themeMenu) {
+        // Build ordered list of theme keys for RadioMenuItems
+        List<String> orderedKeys = new ArrayList<>();
+        for (MenuItem item : themeMenu.getItems()) {
+            if (item instanceof RadioMenuItem radio) {
+                String key = themeMenuBindings.get(radio);
+                if (key != null) orderedKeys.add(key);
+            }
+        }
+        if (orderedKeys.isEmpty()) return;
+
+        // Get the submenu popup from the first RadioMenuItem
+        RadioMenuItem firstRadio = null;
+        for (MenuItem item : themeMenu.getItems()) {
+            if (item instanceof RadioMenuItem r) { firstRadio = r; break; }
+        }
+        if (firstRadio == null) return;
+
+        var popup = firstRadio.getParentPopup();
+        if (popup == null || popup.getSkin() == null) {
+            if (themeMenu.isShowing()) {
+                Platform.runLater(() -> attachThemeHoverPreview(themeMenu));
+            }
+            return;
+        }
+
+        Node popupContent = popup.getSkin().getNode();
+        var radioNodes = popupContent.lookupAll(".radio-menu-item");
+
+        int i = 0;
+        for (Node node : radioNodes) {
+            if (i >= orderedKeys.size()) break;
+            final String themeKey = orderedKeys.get(i);
+            node.setOnMouseEntered(me -> previewTheme(themeKey));
+            i++;
+        }
+    }
+
+    private void previewTheme(String themeKey) {
+        String resolvedTheme = THEME_STYLESHEETS.containsKey(themeKey) ? themeKey : DEFAULT_THEME;
+        String modeClass = THEME_MODE.getOrDefault(resolvedTheme, "theme-dark");
+        windowRoot.getStyleClass().removeAll("theme-dark", "theme-light");
+        windowRoot.getStyleClass().add(modeClass);
+        applyThemeStylesheet(resolvedTheme);
+    }
+
+    // ================= PREFERENCES DIALOG =================
+    @FXML
+    private void openPreferences() {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/settings.fxml"));
+            javafx.scene.Parent root = loader.load();
+            SettingsDialogController controller = loader.getController();
+            controller.setOnSave(this::applySettingsFromManager);
+            try {
+                javafx.application.HostServices hs = (javafx.application.HostServices)
+                        stage.getProperties().get("hostServices");
+                if (hs != null) controller.setHostServices(hs);
+            } catch (Exception ignored) {}
+
+            javafx.stage.Stage dialog = new javafx.stage.Stage();
+            dialog.initOwner(stage);
+            dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            dialog.initStyle(javafx.stage.StageStyle.TRANSPARENT);
+            dialog.setTitle("Preferences");
+
+            // Custom title bar with close button
+            Label titleLabel = new Label("Preferences");
+            titleLabel.getStyleClass().add("settings-title-label");
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            Button closeBtn = new Button("\u2715");
+            closeBtn.getStyleClass().add("settings-close-button");
+            closeBtn.setOnAction(e -> dialog.close());
+            HBox titleBarBox = new HBox(titleLabel, spacer, closeBtn);
+            titleBarBox.getStyleClass().add("settings-title-bar");
+            titleBarBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+            // Draggable title bar
+            final double[] dragOffset = new double[2];
+            titleBarBox.setOnMousePressed(e -> {
+                dragOffset[0] = e.getSceneX();
+                dragOffset[1] = e.getSceneY();
+            });
+            titleBarBox.setOnMouseDragged(e -> {
+                dialog.setX(e.getScreenX() - dragOffset[0]);
+                dialog.setY(e.getScreenY() - dragOffset[1]);
+            });
+
+            VBox wrapper = new VBox(titleBarBox, root);
+            VBox.setVgrow(root, Priority.ALWAYS);
+            wrapper.getStyleClass().addAll("window-root", "settings-root");
+            String modeClass = THEME_MODE.getOrDefault(committedThemeKey, "theme-dark");
+            wrapper.getStyleClass().add(modeClass);
+
+            // Remove settings-root from the inner BorderPane so only wrapper has it
+            root.getStyleClass().remove("settings-root");
+
+            // Rounded clip
+            Rectangle clip = new Rectangle(680, 540);
+            clip.setArcWidth(32);
+            clip.setArcHeight(32);
+            clip.widthProperty().bind(wrapper.widthProperty());
+            clip.heightProperty().bind(wrapper.heightProperty());
+            wrapper.setClip(clip);
+
+            javafx.scene.Scene scene = new javafx.scene.Scene(wrapper, 680, 540);
+            scene.setFill(Color.TRANSPARENT);
+            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            if (activeThemeStylesheet != null) {
+                scene.getStylesheets().add(activeThemeStylesheet);
+            }
+            dialog.setScene(scene);
+            dialog.setResizable(false);
+            dialog.showAndWait();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // ================= BUTTON SVG ICONS =================
+    private void setButtonIcons() {
+        // Person silhouette for profile
+        Region personIcon = new Region();
+        personIcon.getStyleClass().add("profile-person-icon");
+        personIcon.setPrefSize(16, 16);
+        personIcon.setMinSize(16, 16);
+        personIcon.setMaxSize(16, 16);
+        profileButton.setGraphic(personIcon);
+        profileButton.setText("");
+
+        // Gear for settings
+        Region gearIcon = new Region();
+        gearIcon.getStyleClass().add("settings-gear-icon");
+        gearIcon.setPrefSize(16, 16);
+        gearIcon.setMinSize(16, 16);
+        gearIcon.setMaxSize(16, 16);
+        settingsButton.setGraphic(gearIcon);
+        settingsButton.setText("");
+    }
+
+    // ================= PROFILE MENU ICONS =================
+    private void addProfileMenuIcons() {
+        for (MenuItem item : profileButton.getItems()) {
+            if (item instanceof SeparatorMenuItem) continue;
+            String text = item.getText();
+            if (text == null) continue;
+            switch (text) {
+                case "User Profile" -> item.setGraphic(createMenuIcon("\uD83D\uDC64")); // 👤
+                case "Account Information" -> item.setGraphic(createMenuIcon("\uD83D\uDCCB")); // 📋
+                case "Logout" -> item.setGraphic(createMenuIcon("\uD83D\uDEAA")); // 🚪
+            }
+        }
+    }
+
+    // ================= DIALOG HELPER =================
+    private javafx.stage.Stage createStyledDialog(String title, javafx.scene.Parent content, double width, double height, javafx.stage.Stage owner) {
+        javafx.stage.Stage dialog = new javafx.stage.Stage();
+        dialog.initOwner(owner != null ? owner : stage);
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        dialog.initStyle(javafx.stage.StageStyle.TRANSPARENT);
+        dialog.setTitle(title);
+
+        // Title bar
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("settings-title-label");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Button closeBtn = new Button("\u2715");
+        closeBtn.getStyleClass().add("settings-close-button");
+        closeBtn.setOnAction(e -> dialog.close());
+        HBox titleBarBox = new HBox(titleLabel, spacer, closeBtn);
+        titleBarBox.getStyleClass().add("settings-title-bar");
+        titleBarBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        // Draggable
+        final double[] dragOff = new double[2];
+        titleBarBox.setOnMousePressed(e -> { dragOff[0] = e.getSceneX(); dragOff[1] = e.getSceneY(); });
+        titleBarBox.setOnMouseDragged(e -> { dialog.setX(e.getScreenX() - dragOff[0]); dialog.setY(e.getScreenY() - dragOff[1]); });
+
+        VBox wrapper = new VBox(titleBarBox, content);
+        VBox.setVgrow(content, Priority.ALWAYS);
+        wrapper.getStyleClass().addAll("window-root", "settings-root");
+        // Apply the current theme mode class so CSS looked-up colors resolve
+        String modeClass = THEME_MODE.getOrDefault(committedThemeKey, "theme-dark");
+        wrapper.getStyleClass().add(modeClass);
+        content.getStyleClass().remove("settings-root");
+
+        // Rounded clip
+        Rectangle clip = new Rectangle(width, height);
+        clip.setArcWidth(32);
+        clip.setArcHeight(32);
+        clip.widthProperty().bind(wrapper.widthProperty());
+        clip.heightProperty().bind(wrapper.heightProperty());
+        wrapper.setClip(clip);
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(wrapper, width, height);
+        scene.setFill(Color.TRANSPARENT);
+        scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+        if (activeThemeStylesheet != null) {
+            scene.getStylesheets().add(activeThemeStylesheet);
+        }
+        dialog.setScene(scene);
+        dialog.setResizable(false);
+        return dialog;
+    }
+
+    // ================= PROFILE PANEL =================
+    @FXML
+    private void openUserProfile() {
+        String userName = settingsManager.getString("profile.name", "Cortex User");
+        String userEmail = settingsManager.getString("profile.email", "user@example.com");
+        String userPlan = settingsManager.getString("profile.plan", "Free");
+
+        // Avatar circle
+        String initials = buildInitials(userName);
+        Label avatarLabel = new Label(initials);
+        avatarLabel.getStyleClass().add("profile-avatar");
+
+        Label nameLabel = new Label(userName);
+        nameLabel.getStyleClass().add("profile-detail-name");
+
+        Label emailLabel = new Label(userEmail);
+        emailLabel.getStyleClass().add("profile-detail-email");
+
+        Label planLabel = new Label("Plan: " + userPlan);
+        planLabel.getStyleClass().add("profile-detail-plan");
+
+        javafx.scene.control.Button editBtn = new javafx.scene.control.Button("Edit Profile");
+        editBtn.getStyleClass().add("profile-edit-button");
+
+        VBox content = new VBox(12, avatarLabel, nameLabel, emailLabel, planLabel, editBtn);
+        content.getStyleClass().add("profile-panel-root");
+        content.setAlignment(javafx.geometry.Pos.CENTER);
+        content.setPadding(new javafx.geometry.Insets(28, 36, 28, 36));
+
+        javafx.stage.Stage dialog = createStyledDialog("User Profile", content, 340, 360, null);
+        editBtn.setOnAction(e -> openEditProfile(dialog, nameLabel, emailLabel, planLabel, avatarLabel));
+        dialog.showAndWait();
+    }
+
+    private String buildInitials(String name) {
+        if (name == null || name.isBlank()) return "?";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length >= 2) {
+            return ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+        return ("" + parts[0].charAt(0)).toUpperCase();
+    }
+
+    private void openEditProfile(javafx.stage.Stage ownerDialog, Label nameLabel, Label emailLabel, Label planLabel, Label avatarLabel) {
+        javafx.scene.control.TextField nameField = new javafx.scene.control.TextField(nameLabel.getText());
+        nameField.setPromptText("Name");
+        nameField.getStyleClass().add("profile-edit-field");
+
+        javafx.scene.control.TextField emailField = new javafx.scene.control.TextField(emailLabel.getText());
+        emailField.setPromptText("Email");
+        emailField.getStyleClass().add("profile-edit-field");
+
+        javafx.scene.control.Button saveBtn = new javafx.scene.control.Button("Save");
+        saveBtn.getStyleClass().add("profile-edit-button");
+
+        VBox editContent = new VBox(12,
+                new Label("Name:"), nameField,
+                new Label("Email:"), emailField,
+                saveBtn);
+        editContent.getStyleClass().add("profile-panel-root");
+        editContent.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        editContent.setPadding(new javafx.geometry.Insets(20, 30, 20, 30));
+
+        javafx.stage.Stage editDialog = createStyledDialog("Edit Profile", editContent, 340, 320, ownerDialog);
+        saveBtn.setOnAction(e -> {
+            String newName = nameField.getText().trim();
+            String newEmail = emailField.getText().trim();
+            if (!newName.isEmpty()) {
+                settingsManager.set("profile.name", newName);
+                nameLabel.setText(newName);
+                avatarLabel.setText(buildInitials(newName));
+            }
+            if (!newEmail.isEmpty()) {
+                settingsManager.set("profile.email", newEmail);
+                emailLabel.setText(newEmail);
+            }
+            settingsManager.save();
+            editDialog.close();
+        });
+        editDialog.showAndWait();
+    }
+
+    @FXML
+    private void openAccountInfo() {
+        String userName = settingsManager.getString("profile.name", "Cortex User");
+        String userEmail = settingsManager.getString("profile.email", "user@example.com");
+        String userPlan = settingsManager.getString("profile.plan", "Free");
+
+        Label heading = new Label("Account Information");
+        heading.getStyleClass().add("about-app-name");
+
+        Label nameRow = new Label("Name: " + userName);
+        nameRow.getStyleClass().add("profile-detail-email");
+
+        Label emailRow = new Label("Email: " + userEmail);
+        emailRow.getStyleClass().add("profile-detail-email");
+
+        Label planRow = new Label("Plan: " + userPlan);
+        planRow.getStyleClass().add("profile-detail-plan");
+
+        VBox content = new VBox(12, heading, nameRow, emailRow, planRow);
+        content.getStyleClass().add("profile-panel-root");
+        content.setAlignment(javafx.geometry.Pos.CENTER);
+        content.setPadding(new javafx.geometry.Insets(28, 36, 28, 36));
+
+        javafx.stage.Stage dialog = createStyledDialog("Account Information", content, 360, 280, null);
+        dialog.showAndWait();
+    }
+
+    @FXML
+    private void handleLogout() {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                javafx.scene.control.Alert.AlertType.CONFIRMATION,
+                "Are you sure you want to logout?",
+                javafx.scene.control.ButtonType.YES,
+                javafx.scene.control.ButtonType.NO);
+        alert.setTitle("Logout");
+        alert.setHeaderText(null);
+        alert.initOwner(stage);
+        alert.showAndWait().ifPresent(response -> {
+            if (response == javafx.scene.control.ButtonType.YES) {
+                // Clear session state — future auth integration point
+                settingsManager.set("profile.name", "Cortex User");
+                settingsManager.set("profile.email", "user@example.com");
+                settingsManager.save();
+            }
+        });
+    }
+
+    // ================= ABOUT DIALOG =================
+    @FXML
+    private void openAbout() {
+        Label appName = new Label("Cortex");
+        appName.getStyleClass().add("about-app-name");
+
+        Label versionLabel = new Label("Version: 1.0.0");
+        versionLabel.getStyleClass().add("about-version");
+
+        javafx.scene.control.Button updateBtn = new javafx.scene.control.Button("Check for Updates");
+        updateBtn.getStyleClass().add("about-update-button");
+        updateBtn.setOnAction(e -> {
+            updateBtn.setText("\u2713 You are running the latest version.");
+            updateBtn.setDisable(true);
+        });
+
+        VBox content = new VBox(14, appName, versionLabel, updateBtn);
+        content.getStyleClass().add("about-dialog-root");
+        content.setAlignment(javafx.geometry.Pos.CENTER);
+        content.setPadding(new javafx.geometry.Insets(28, 36, 28, 36));
+
+        javafx.stage.Stage dialog = createStyledDialog("About Cortex", content, 360, 260, null);
+        dialog.showAndWait();
+    }
+
+    private void applySettingsFromManager() {
+        // Re-apply theme if changed
+        String savedTheme = settingsManager.getString("appearance.theme", DEFAULT_THEME);
+        if (!savedTheme.equals(committedThemeKey)) {
+            committedThemeKey = savedTheme;
+            applyTheme(savedTheme);
+        }
     }
 
     // ================= THEME APPLY =================

@@ -386,7 +386,6 @@
     -fx-padding: 12 14;
     -fx-font-size: 13px;
     -fx-prompt-text-fill: #94a3b8;
-    -fx-control-inner-background: rgba(22, 26, 50, 0.8);
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 12, 0.2, 0, 2);
@@ -398,8 +397,7 @@
 }
 
 .input-area {
-    -fx-background-color: rgba(22, 26, 50, 0.8);
-    -fx-control-inner-background: rgba(22, 26, 50, 0.8);
+    -fx-background-color: transparent;
     -fx-text-fill: #e2e8f0;
     -fx-prompt-text-fill: #94a3b8;
     -fx-background-radius: 14;
@@ -414,15 +412,17 @@
 }
 
 .input-area:focused {
-    -fx-background-color: rgba(22, 26, 50, 0.8);
+    -fx-background-color: transparent;
     -fx-border-color: rgba(255, 255, 255, 0.05);
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 12, 0.2, 0, 2);
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
 
+.input-area .content,
 .input-area .scroll-pane,
-.input-area .scroll-pane .viewport {
+.input-area .scroll-pane .viewport,
+.input-area .scroll-pane .content {
     -fx-background-color: transparent;
 }
 
@@ -518,7 +518,7 @@
 .app-root.light-mode .text-field,
 .app-root.light-mode .text-area,
 .app-root.light-mode .input-area {
-    -fx-background-color: #f1f5f9;
+    -fx-background-color: transparent;
     -fx-text-fill: #1e293b;
     -fx-border-color: rgba(99, 102, 241, 0.15);
     -fx-prompt-text-fill: #94a3b8;
@@ -527,6 +527,7 @@
 .app-root.light-mode .text-field:focused,
 .app-root.light-mode .text-area:focused,
 .app-root.light-mode .input-area:focused {
+    -fx-background-color: transparent;
     -fx-border-color: rgba(99, 102, 241, 0.15);
 }
 

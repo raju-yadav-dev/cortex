@@ -8,6 +8,15 @@
         <SplitPane fx:id="chatSplitPane" orientation="HORIZONTAL" styleClass="chat-split-pane">
             <items>
                 <BorderPane styleClass="chat-content-shell">
+                    <top>
+                        <HBox fx:id="exportToastBanner" styleClass="export-toast-banner" alignment="CENTER_LEFT" spacing="8" visible="false" managed="false">
+                            <padding>
+                                <Insets top="8" right="12" bottom="8" left="12" />
+                            </padding>
+                            <Label fx:id="exportToastLabel" styleClass="export-toast-label" text="" HBox.hgrow="ALWAYS" />
+                            <Button fx:id="exportToastCloseButton" text="✕" styleClass="export-toast-close" focusTraversable="false" />
+                        </HBox>
+                    </top>
                     <!-- ================= MESSAGE VIEWPORT ================= -->
                     <center>
                         <VBox spacing="14" styleClass="chat-main" BorderPane.alignment="CENTER">
@@ -33,9 +42,21 @@
                             </padding>
                             <!-- Subsection: Input + Send Action -->
                             <HBox fx:id="inputShell" styleClass="input-shell" alignment="CENTER_LEFT" spacing="10">
-                                <TextArea fx:id="inputArea" prefRowCount="1" wrapText="true" promptText="Message Cortex..." HBox.hgrow="ALWAYS" />
+                                <TextArea fx:id="inputArea" styleClass="input-area" prefRowCount="1" wrapText="true" promptText="Message Cortex..." HBox.hgrow="ALWAYS" />
                                 <Button fx:id="terminalToggleButton" text=">_" focusTraversable="false" styleClass="terminal-toggle-button" />
-                                <Button fx:id="sendButton" text="&#8593;" focusTraversable="false" styleClass="send-button" />
+                                <MenuButton fx:id="exportButton" text="⋯" styleClass="overflow-menu-button" focusTraversable="false">
+                                    <items>
+                                        <MenuItem text="Copy chat as Markdown" onAction="#copyAsMarkdown" />
+                                        <MenuItem text="Copy chat as Text" onAction="#copyAsText" />
+                                        <MenuItem text="Screenshot to Clipboard" onAction="#screenshotToClipboard" />
+                                        <SeparatorMenuItem />
+                                        <MenuItem text="Export as Text (.txt)" onAction="#exportAsText" />
+                                        <MenuItem text="Export as Markdown (.md)" onAction="#exportAsMarkdown" />
+                                        <MenuItem text="Export as PDF (.pdf)" onAction="#exportAsPDF" />
+                                        <MenuItem text="Export as Word (.docx)" onAction="#exportAsWord" />
+                                    </items>
+                                </MenuButton>
+                                <Button fx:id="sendButton" text="&#8593;" focusTraversable="false" styleClass="terminal-toggle-button" />
                             </HBox>
                         </VBox>
                     </bottom>
