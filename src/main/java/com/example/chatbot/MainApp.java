@@ -36,7 +36,7 @@ public class MainApp extends Application {
 
         // ---- Configure Stage ----
         primaryStage.initStyle(StageStyle.TRANSPARENT);
-        primaryStage.setTitle("Chatbot Desktop");
+        primaryStage.setTitle("Cortex");
         primaryStage.setScene(scene);
         var appIcon = getClass().getResource("/icon/Cortex.png");
         if (appIcon != null) {

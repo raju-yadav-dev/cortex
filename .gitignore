@@ -1,0 +1,8 @@
+.gradle/
+build/
+bin/
+out/
+
+# Local API config (do not commit secrets)
+/app.properties
+/src/main/resources/app.properties

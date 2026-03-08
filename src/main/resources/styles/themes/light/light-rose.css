@@ -29,9 +29,13 @@
 
 .window-root.theme-light .sidebar,
 .window-root.theme-light .title-bar,
-.window-root.theme-light .bot-bubble,
-.window-root.theme-light .input-shell,
 .window-root.theme-light .new-chat-button {
+    -fx-background-color: #f2e4ec;
+    -fx-border-color: rgba(195, 138, 164, 0.28);
+}
+
+.window-root.theme-light .bot-bubble,
+.window-root.theme-light .input-shell {
     -fx-background-color: #fbeff4;
     -fx-border-color: rgba(195, 138, 164, 0.22);
 }

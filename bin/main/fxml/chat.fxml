@@ -8,36 +8,61 @@
         <SplitPane fx:id="chatSplitPane" orientation="HORIZONTAL" styleClass="chat-split-pane">
             <items>
                 <BorderPane styleClass="chat-content-shell">
+                    <top>
+                        <HBox fx:id="exportToastBanner" styleClass="export-toast-banner" alignment="CENTER_LEFT" spacing="8" visible="false" managed="false">
+                            <padding>
+                                <Insets top="8" right="12" bottom="8" left="12" />
+                            </padding>
+                            <Label fx:id="exportToastLabel" styleClass="export-toast-label" text="" HBox.hgrow="ALWAYS" />
+                            <Button fx:id="exportToastCloseButton" text="✕" styleClass="export-toast-close" focusTraversable="false" />
+                        </HBox>
+                    </top>
                     <!-- ================= MESSAGE VIEWPORT ================= -->
                     <center>
-                        <VBox spacing="14" styleClass="chat-main" BorderPane.alignment="CENTER">
-                            <padding>
-                                <Insets top="16" right="22" bottom="10" left="22" />
-                            </padding>
-                            <!-- Subsection: Scrollable Message List -->
-                            <ScrollPane fx:id="scrollPane" fitToWidth="true" styleClass="messages-scroll" VBox.vgrow="ALWAYS">
-                                <VBox fx:id="messageBox" spacing="10" styleClass="messages-list">
-                                    <padding>
-                                        <Insets top="2" right="2" bottom="2" left="2" />
-                                    </padding>
-                                </VBox>
-                            </ScrollPane>
-                        </VBox>
+                        <StackPane styleClass="chat-container-host" BorderPane.alignment="CENTER">
+                            <VBox spacing="14" styleClass="chat-main chat-container" alignment="TOP_CENTER">
+                                <padding>
+                                    <Insets top="16" right="22" bottom="10" left="22" />
+                                </padding>
+                                <!-- Subsection: Scrollable Message List -->
+                                <ScrollPane fx:id="scrollPane" fitToWidth="true" styleClass="messages-scroll" VBox.vgrow="ALWAYS">
+                                    <VBox fx:id="messageBox" spacing="10" styleClass="messages-list">
+                                        <padding>
+                                            <Insets top="2" right="2" bottom="2" left="2" />
+                                        </padding>
+                                    </VBox>
+                                </ScrollPane>
+                            </VBox>
+                        </StackPane>
                     </center>
 
                     <!-- ================= COMPOSER ================= -->
                     <bottom>
-                        <VBox styleClass="composer-host">
-                            <padding>
-                                <Insets top="4" right="22" bottom="18" left="22" />
-                            </padding>
-                            <!-- Subsection: Input + Send Action -->
-                            <HBox fx:id="inputShell" styleClass="input-shell" alignment="CENTER_LEFT" spacing="10">
-                                <TextArea fx:id="inputArea" prefRowCount="1" wrapText="true" promptText="Message Cortex..." HBox.hgrow="ALWAYS" />
-                                <Button fx:id="terminalToggleButton" text=">_" focusTraversable="false" styleClass="terminal-toggle-button" />
-                                <Button fx:id="sendButton" text="&#8593;" focusTraversable="false" styleClass="send-button" />
-                            </HBox>
-                        </VBox>
+                        <StackPane styleClass="chat-container-host composer-host">
+                            <VBox styleClass="chat-container">
+                                <padding>
+                                    <Insets top="4" right="22" bottom="18" left="22" />
+                                </padding>
+                                <!-- Subsection: Input + Send Action -->
+                                <HBox fx:id="inputShell" styleClass="input-shell" alignment="CENTER_LEFT" spacing="10">
+                                    <TextArea fx:id="inputArea" styleClass="input-area" prefRowCount="1" wrapText="true" promptText="Message Cortex..." HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="terminalToggleButton" text=">_" focusTraversable="false" styleClass="terminal-toggle-button" />
+                                    <MenuButton fx:id="exportButton" text="⋯" styleClass="overflow-menu-button" focusTraversable="false">
+                                        <items>
+                                            <MenuItem text="Copy chat as Markdown" onAction="#copyAsMarkdown" />
+                                            <MenuItem text="Copy chat as Text" onAction="#copyAsText" />
+                                            <MenuItem text="Screenshot to Clipboard" onAction="#screenshotToClipboard" />
+                                            <SeparatorMenuItem />
+                                            <MenuItem text="Export as Text (.txt)" onAction="#exportAsText" />
+                                            <MenuItem text="Export as Markdown (.md)" onAction="#exportAsMarkdown" />
+                                            <MenuItem text="Export as PDF (.pdf)" onAction="#exportAsPDF" />
+                                            <MenuItem text="Export as Word (.docx)" onAction="#exportAsWord" />
+                                        </items>
+                                    </MenuButton>
+                                    <Button fx:id="sendButton" text="&#8593;" focusTraversable="false" styleClass="terminal-toggle-button" />
+                                </HBox>
+                            </VBox>
+                        </StackPane>
                     </bottom>
                 </BorderPane>
 

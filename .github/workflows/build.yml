@@ -1,0 +1,92 @@
+name: Build Cortex Installers
+
+on:
+push:
+tags:
+- "v*"
+
+jobs:
+
+build-windows:
+runs-on: windows-latest
+
+```
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: 21
+
+  - name: Grant Gradle permission
+    run: chmod +x gradlew
+
+  - name: Build project
+    run: ./gradlew build
+
+  - name: Package installer
+    run: ./gradlew jpackage
+
+  - name: Upload Windows installer
+    uses: actions/upload-artifact@v4
+    with:
+      name: cortex-windows
+      path: build/jpackage/*
+```
+
+build-linux:
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: 21
+
+  - name: Build project
+    run: ./gradlew build
+
+  - name: Package Linux installers
+    run: ./gradlew jpackage
+
+  - name: Upload Linux installers
+    uses: actions/upload-artifact@v4
+    with:
+      name: cortex-linux
+      path: build/jpackage/*
+```
+
+build-macos:
+runs-on: macos-latest
+
+```
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: 21
+
+  - name: Build project
+    run: ./gradlew build
+
+  - name: Package macOS installer
+    run: ./gradlew jpackage
+
+  - name: Upload macOS installer
+    uses: actions/upload-artifact@v4
+    with:
+      name: cortex-macos
+      path: build/jpackage/*
+```

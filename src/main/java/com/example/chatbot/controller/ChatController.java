@@ -3,7 +3,10 @@ package com.example.chatbot.controller;
 import com.example.chatbot.model.Conversation;
 import com.example.chatbot.model.Message;
 import com.example.chatbot.service.ChatService;
+import com.example.chatbot.service.CodeExecutionService;
 import com.example.chatbot.service.ExportService;
+import com.example.chatbot.service.LanguageConfigService;
+import com.example.chatbot.service.SettingsManager;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
@@ -26,6 +29,12 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -112,6 +121,9 @@ public class ChatController {
     private static final Pattern ORDERED_LIST_PATTERN = Pattern.compile("^(\\d+)\\.\\s+(.*)$");
     private static final Pattern UNORDERED_LIST_PATTERN = Pattern.compile("^[-*]\\s+(.*)$");
     private static final Pattern INLINE_MARKDOWN_PATTERN = Pattern.compile("(\\*\\*([^*]+)\\*\\*)|(`([^`]+)`)|(\\*([^*]+)\\*)");
+    private static final double MESSAGE_WIDTH_RATIO = 0.70;
+    private static final double MESSAGE_MAX_WIDTH_CAP = 920;
+    private static final double MESSAGE_MIN_WIDTH = 260;
     private static final Pattern PUBLIC_CLASS_PATTERN = Pattern.compile("\\bpublic\\s+class\\s+([A-Za-z_$][\\w$]*)\\b");
     private static final Pattern CLASS_PATTERN = Pattern.compile("\\bclass\\s+([A-Za-z_$][\\w$]*)\\b");
     private static final double TERMINAL_MIN_WIDTH = 280;
@@ -123,8 +135,9 @@ public class ChatController {
     private static final double TERMINAL_MAX_HEIGHT = 420;
     private static final String TERMINAL_PROMPT_SUFFIX = "> ";
     private final BooleanProperty waitingForResponse = new SimpleBooleanProperty(false);
-    private final Map<String, Boolean> runtimeAvailabilityCache = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> commandAvailabilityCache = new ConcurrentHashMap<>();
+    private final LanguageConfigService langConfigService = new LanguageConfigService();
+    private final CodeExecutionService codeExecutionService = new CodeExecutionService(langConfigService, this::appendTerminalRaw);
+    private final SettingsManager settingsManager = SettingsManager.getInstance();
     private PauseTransition exportToastTimer;
     private volatile RunningExecution activeExecution;
     private Path terminalWorkingDirectory = Path.of(System.getProperty("user.home"));
@@ -134,6 +147,11 @@ public class ChatController {
     private Timeline responseTypingTimeline;
     private HBox pendingBotBubbleRow;
     private Label pendingBotBubbleLabel;
+    private VBox pendingBubbleContentBox;
+    private int streamingFinalizedCount;
+    private Node streamingActiveNode;
+    private VBox streamingActiveVBox;
+    private boolean streamingActiveIsCode;
 
     private enum TerminalDockPosition {
         LEFT,
@@ -145,6 +163,14 @@ public class ChatController {
     // ================= INITIALIZATION =================
     @FXML
     public void initialize() {
+        if (scrollPane != null) {
+            scrollPane.setFitToWidth(true);
+        }
+        if (messageBox != null) {
+            messageBox.setFillWidth(true);
+            messageBox.setMaxWidth(Double.MAX_VALUE);
+        }
+
         // ---- Disable Send For Empty Input ----
         sendButton.disableProperty().bind(
                 Bindings.createBooleanBinding(
@@ -184,6 +210,10 @@ public class ChatController {
                 inputShell.getStyleClass().remove("input-focused");
             }
         });
+
+        // ---- Auto-resize input height (1–4 lines) ----
+        inputArea.textProperty().addListener((obs, oldText, newText) -> adjustInputHeight(newText));
+        adjustInputHeight(inputArea.getText());
 
         if (exportToastCloseButton != null) {
             exportToastCloseButton.setOnAction(event -> hideNotificationBanner(true));
@@ -245,6 +275,33 @@ public class ChatController {
             messageBox.getChildren().add(createBubble(msg));
         }
         scrollToBottom();
+    }
+
+    // ================= INPUT AUTO-RESIZE =================
+    private static final double INPUT_LINE_HEIGHT = 20.0;
+    private static final double INPUT_BASE_HEIGHT = 34.0;
+    private static final int INPUT_MAX_LINES = 3;
+    private boolean inputExpanded = false;
+
+    private void adjustInputHeight(String text) {
+        int lineCount = 1;
+        if (text != null && !text.isEmpty()) {
+            lineCount = text.split("\n", -1).length;
+        }
+
+        if (lineCount > 2) {
+            // Expand to max 3 lines and mark as sticky-expanded
+            inputExpanded = true;
+            lineCount = Math.min(lineCount, INPUT_MAX_LINES);
+        } else if (lineCount <= 2) {
+            // Shrink back only when text is 2 lines or fewer
+            inputExpanded = false;
+        }
+
+        int effectiveLines = inputExpanded ? INPUT_MAX_LINES : Math.max(1, lineCount);
+        double height = INPUT_BASE_HEIGHT + (effectiveLines - 1) * INPUT_LINE_HEIGHT;
+        inputArea.setPrefHeight(height);
+        inputArea.setMinHeight(height);
     }
 
     // ================= SEND FLOW =================
@@ -318,15 +375,20 @@ public class ChatController {
     private HBox createGeneratingBubble() {
         HBox row = new HBox();
         row.getStyleClass().add("message-row");
+        row.setMaxWidth(Double.MAX_VALUE);
         row.setAlignment(Pos.TOP_LEFT);
 
         Label generatingLabel = new Label("Cortex is generating");
         generatingLabel.setWrapText(true);
-        generatingLabel.setMaxWidth(520);
+        applyResponsiveMaxWidth(generatingLabel);
         generatingLabel.getStyleClass().addAll("message-text", "message-generating-text");
 
-        VBox bubble = new VBox(generatingLabel);
+        VBox contentBox = new VBox(8, generatingLabel);
+
+        VBox bubble = new VBox(contentBox);
         bubble.getStyleClass().addAll("message-bubble", "bot-bubble", "generating-bubble");
+        bubble.setFillWidth(true);
+        applyResponsivePrefWidth(bubble);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -334,6 +396,7 @@ public class ChatController {
 
         pendingBotBubbleRow = row;
         pendingBotBubbleLabel = generatingLabel;
+        pendingBubbleContentBox = contentBox;
         return row;
     }
 
@@ -377,6 +440,10 @@ public class ChatController {
     private void clearPendingBotBubble() {
         pendingBotBubbleRow = null;
         pendingBotBubbleLabel = null;
+        pendingBubbleContentBox = null;
+        streamingActiveNode = null;
+        streamingActiveVBox = null;
+        streamingFinalizedCount = 0;
     }
 
     private void stopResponseAnimations() {
@@ -396,7 +463,7 @@ public class ChatController {
         }
 
         if (pendingBotBubbleRow == null
-                || pendingBotBubbleLabel == null
+                || pendingBubbleContentBox == null
                 || !messageBox.getChildren().contains(pendingBotBubbleRow)) {
             HBox bubble = createBubbleSafely(responseMessage);
             messageBox.getChildren().add(bubble);
@@ -420,7 +487,13 @@ public class ChatController {
             return;
         }
 
-        pendingBotBubbleLabel.setText("");
+        // Initialize streaming state
+        pendingBubbleContentBox.getChildren().clear();
+        streamingFinalizedCount = 0;
+        streamingActiveNode = null;
+        streamingActiveVBox = null;
+        streamingActiveIsCode = false;
+
         final int totalLength = fullText.length();
         final int[] cursor = {0};
 
@@ -433,9 +506,7 @@ public class ChatController {
                     : 1;
 
             cursor[0] = Math.min(totalLength, cursor[0] + step);
-            if (pendingBotBubbleLabel != null) {
-                pendingBotBubbleLabel.setText(fullText.substring(0, cursor[0]));
-            }
+            updateStreamingContent(fullText, cursor[0]);
             scrollToBottomNow();
 
             if (cursor[0] >= totalLength) {
@@ -448,6 +519,223 @@ public class ChatController {
         }));
         responseTypingTimeline.setCycleCount(Timeline.INDEFINITE);
         responseTypingTimeline.play();
+    }
+
+    // ================= STREAMING MARKDOWN RENDERER =================
+    private void updateStreamingContent(String fullText, int upTo) {
+        String partial = fullText.substring(0, upTo);
+        String[] parts = partial.split("```", -1);
+        int totalParts = parts.length;
+        int completeCount = totalParts - 1; // all except the last are complete
+
+        // Finalize complete segments not yet rendered
+        while (streamingFinalizedCount < completeCount) {
+            int i = streamingFinalizedCount;
+            String raw = parts[i];
+            boolean isCode = (i % 2 == 1);
+            Node rendered = null;
+
+            if (isCode) {
+                int nl = raw.indexOf('\n');
+                String lang = nl >= 0 ? raw.substring(0, nl).trim() : raw.trim();
+                String code = nl >= 0 ? raw.substring(nl + 1).stripTrailing() : "";
+                if (lang.isEmpty()) lang = "text";
+                rendered = createCodeBlock(lang, code);
+            } else {
+                String trimmed = raw.trim();
+                if (!trimmed.isEmpty()) {
+                    rendered = createMarkdownBlock(trimmed);
+                }
+            }
+
+            if (streamingActiveNode != null) {
+                int idx = pendingBubbleContentBox.getChildren().indexOf(streamingActiveNode);
+                if (rendered != null && idx >= 0) {
+                    pendingBubbleContentBox.getChildren().set(idx, rendered);
+                } else {
+                    if (idx >= 0) pendingBubbleContentBox.getChildren().remove(idx);
+                    if (rendered != null) pendingBubbleContentBox.getChildren().add(rendered);
+                }
+                streamingActiveNode = null;
+                streamingActiveVBox = null;
+            } else if (rendered != null) {
+                pendingBubbleContentBox.getChildren().add(rendered);
+            }
+
+            streamingFinalizedCount++;
+        }
+
+        // Update the active (last) segment
+        String activeRaw = parts[totalParts - 1];
+        boolean activeIsCode = ((totalParts - 1) % 2 == 1);
+
+        if (activeIsCode) {
+            // Streaming code block
+            int nl = activeRaw.indexOf('\n');
+            String displayText = nl >= 0 ? activeRaw.substring(nl + 1) : "";
+
+            if (streamingActiveVBox == null || !streamingActiveIsCode) {
+                if (streamingActiveNode != null) {
+                    pendingBubbleContentBox.getChildren().remove(streamingActiveNode);
+                }
+                streamingActiveIsCode = true;
+
+                String lang = nl >= 0 ? activeRaw.substring(0, nl).trim() : activeRaw.trim();
+                if (lang.isEmpty()) lang = "text";
+                Label langLabel = new Label(lang);
+                langLabel.getStyleClass().add("code-language");
+
+                TextArea codeArea = new TextArea(displayText);
+                codeArea.setEditable(false);
+                codeArea.setWrapText(false);
+                codeArea.setFocusTraversable(false);
+                applyResponsiveMaxWidth(codeArea);
+                codeArea.getStyleClass().add("message-code");
+                int lineCount = Math.max(1, displayText.split("\\R", -1).length);
+                codeArea.setPrefRowCount(lineCount);
+                codeArea.setMinHeight(Region.USE_PREF_SIZE);
+
+                VBox codeWrapper = new VBox(6, langLabel, codeArea);
+                codeWrapper.getStyleClass().add("message-code-block");
+                applyResponsiveMaxWidth(codeWrapper);
+
+                streamingActiveVBox = codeWrapper;
+                streamingActiveNode = codeWrapper;
+                pendingBubbleContentBox.getChildren().add(streamingActiveNode);
+            } else {
+                // Update existing code block TextArea
+                Node last = streamingActiveVBox.getChildren().size() > 1
+                        ? streamingActiveVBox.getChildren().get(1) : null;
+                if (last instanceof TextArea codeArea) {
+                    codeArea.setText(displayText);
+                    int lineCount = Math.max(1, displayText.split("\\R", -1).length);
+                    codeArea.setPrefRowCount(lineCount);
+                }
+            }
+        } else {
+            // Streaming text block — render formatted lines
+            String trimmed = activeRaw.trim();
+            if (trimmed.isEmpty()) {
+                if (streamingActiveNode != null) {
+                    pendingBubbleContentBox.getChildren().remove(streamingActiveNode);
+                    streamingActiveNode = null;
+                    streamingActiveVBox = null;
+                }
+                return;
+            }
+
+            if (streamingActiveVBox == null || streamingActiveIsCode) {
+                if (streamingActiveNode != null) {
+                    pendingBubbleContentBox.getChildren().remove(streamingActiveNode);
+                }
+                streamingActiveIsCode = false;
+                streamingActiveVBox = new VBox(4);
+                streamingActiveVBox.getStyleClass().add("message-markdown");
+                applyResponsiveMaxWidth(streamingActiveVBox);
+                streamingActiveNode = streamingActiveVBox;
+                pendingBubbleContentBox.getChildren().add(streamingActiveNode);
+            }
+
+            // Rebuild formatted lines in the active VBox
+            populateFormattedLines(streamingActiveVBox, trimmed);
+        }
+    }
+
+    /** Populate a markdown VBox with per-line containers so inline queries can anchor to a specific line. */
+    private void populateFormattedLines(VBox container, String rawText) {
+        String[] lines = rawText.split("\\R", -1);
+        int lineIdx = 0;
+
+        for (String rawLine : lines) {
+            String line = rawLine == null ? "" : rawLine;
+            String trimmedLine = line.trim();
+
+            // Skip empty lines but keep spacing
+            if (trimmedLine.isEmpty()) {
+                if (lineIdx < container.getChildren().size()) {
+                    Node existing = container.getChildren().get(lineIdx);
+                    if (existing instanceof Region r && r.getStyleClass().contains("streaming-spacer")) {
+                        lineIdx++;
+                        continue;
+                    }
+                }
+                Region spacer = new Region();
+                spacer.setMinHeight(6);
+                spacer.getStyleClass().add("streaming-spacer");
+                if (lineIdx < container.getChildren().size()) {
+                    container.getChildren().set(lineIdx, spacer);
+                } else {
+                    container.getChildren().add(spacer);
+                }
+                lineIdx++;
+                continue;
+            }
+
+            // Strip trailing unclosed markdown markers during streaming
+            String cleanLine = trimmedLine.replaceAll("[*`]+$", "");
+
+            String displayText;
+            String lineStyleClass = "message-line-plain";
+            Matcher headingMatcher = HEADING_PATTERN.matcher(cleanLine);
+            if (headingMatcher.matches()) {
+                int level = headingMatcher.group(1).length();
+                displayText = stripInlineMarkdownMarkers(headingMatcher.group(2));
+                lineStyleClass = "message-line-heading-" + level;
+            } else {
+                Matcher orderedMatcher = ORDERED_LIST_PATTERN.matcher(cleanLine);
+                if (orderedMatcher.matches()) {
+                    displayText = orderedMatcher.group(1) + ". " + stripInlineMarkdownMarkers(orderedMatcher.group(2));
+                    lineStyleClass = "message-line-list";
+                } else {
+                    Matcher unorderedMatcher = UNORDERED_LIST_PATTERN.matcher(cleanLine);
+                    if (unorderedMatcher.matches()) {
+                        displayText = "\u2022 " + stripInlineMarkdownMarkers(unorderedMatcher.group(1));
+                        lineStyleClass = "message-line-list";
+                    } else {
+                        displayText = stripInlineMarkdownMarkers(cleanLine);
+                    }
+                }
+            }
+
+            VBox lineContainer = new VBox();
+            lineContainer.getStyleClass().add("message-line-container");
+
+            TextArea lineText = new TextArea(displayText.isEmpty() ? " " : displayText);
+            lineText.setEditable(false);
+            lineText.setWrapText(true);
+            lineText.setFocusTraversable(false);
+            lineText.getStyleClass().addAll("message-line-text", lineStyleClass);
+            applyResponsiveMaxWidth(lineText);
+
+            int wrappedLines = Math.max(1, (int) Math.ceil((displayText.length() + 1) / 62.0));
+            lineText.setPrefRowCount(wrappedLines);
+            lineText.setMinHeight(Region.USE_PREF_SIZE);
+
+            lineContainer.getChildren().add(lineText);
+
+            if (lineIdx < container.getChildren().size()) {
+                container.getChildren().set(lineIdx, lineContainer);
+            } else {
+                container.getChildren().add(lineContainer);
+            }
+            lineIdx++;
+        }
+
+        // Remove excess old children
+        while (container.getChildren().size() > lineIdx) {
+            container.getChildren().remove(container.getChildren().size() - 1);
+        }
+    }
+
+    private String stripInlineMarkdownMarkers(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        String cleaned = value;
+        cleaned = cleaned.replaceAll("\\*\\*(.+?)\\*\\*", "$1");
+        cleaned = cleaned.replaceAll("`(.+?)`", "$1");
+        cleaned = cleaned.replaceAll("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)", "$1");
+        return cleaned;
     }
 
     private void replacePendingBubbleWithFinal(Message responseMessage) {
@@ -469,10 +757,36 @@ public class ChatController {
     private HBox createBubble(Message msg) {
         HBox row = new HBox();
         row.getStyleClass().add("message-row");
+        row.setMaxWidth(Double.MAX_VALUE);
 
-        Node content = buildMessageContent(msg.getContent());
+        Node content = msg.getSender() == Message.Sender.USER
+            ? buildCompactUserContent(msg.getContent())
+            : buildMessageContent(msg.getContent());
         VBox bubble = new VBox(content);
         bubble.getStyleClass().add("message-bubble");
+        applyResponsiveMaxWidth(bubble);
+
+        // Copy icon outside the bubble
+        Button copyIcon = new Button("\uD83D\uDCCB"); // clipboard emoji
+        copyIcon.getStyleClass().add("bubble-copy-icon");
+        copyIcon.setFocusTraversable(false);
+        copyIcon.setOnAction(e -> {
+            copyCodeToClipboard(msg.getContent());
+            copyIcon.setText("\u2713");
+            PauseTransition revert = new PauseTransition(Duration.millis(1200));
+            revert.setOnFinished(ev -> copyIcon.setText("\uD83D\uDCCB"));
+            revert.play();
+        });
+
+        // Wrap bubble + copy icon in a VBox, with the icon below at the appropriate corner
+        HBox copyRow = new HBox(copyIcon);
+        copyRow.getStyleClass().add("bubble-copy-row");
+
+        VBox bubbleWrapper = new VBox(2, bubble, copyRow);
+        bubbleWrapper.getStyleClass().add("bubble-wrapper");
+
+        // Context menu: Copy + Ask about this
+        attachBubbleContextMenu(bubbleWrapper, msg.getContent());
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -480,14 +794,253 @@ public class ChatController {
         if (msg.getSender() == Message.Sender.USER) {
             row.setAlignment(Pos.TOP_RIGHT);
             bubble.getStyleClass().add("user-bubble");
-            row.getChildren().addAll(spacer, bubble);
+            bubble.setFillWidth(false);
+            copyRow.setAlignment(Pos.CENTER_LEFT);
+            row.getChildren().addAll(spacer, bubbleWrapper);
         } else {
             row.setAlignment(Pos.TOP_LEFT);
             bubble.getStyleClass().add("bot-bubble");
-            row.getChildren().addAll(bubble, spacer);
+            bubble.setFillWidth(true);
+            applyResponsivePrefWidth(bubble);
+            copyRow.setAlignment(Pos.CENTER_RIGHT);
+            row.getChildren().addAll(bubbleWrapper, spacer);
         }
 
         return row;
+    }
+
+    // ================= ASK ABOUT SELECTION =================
+    private void attachBubbleContextMenu(VBox bubbleWrapper, String fullText) {
+        ContextMenu contextMenu = new ContextMenu();
+        MenuItem copyItem = new MenuItem("Copy");
+        copyItem.setOnAction(e -> {
+            SelectedLineContext selectedContext = getSelectedLineContext(bubbleWrapper);
+            String selected = selectedContext != null ? selectedContext.selectedText() : getSelectedTextFromBubble(bubbleWrapper);
+            copyCodeToClipboard(selected != null && !selected.isBlank() ? selected : fullText);
+        });
+
+        MenuItem askItem = new MenuItem("Ask about this");
+        askItem.setOnAction(e -> {
+            SelectedLineContext selectedContext = getSelectedLineContext(bubbleWrapper);
+            if (selectedContext != null) {
+                insertInlineQuestion(selectedContext);
+                return;
+            }
+
+            String selected = getSelectedTextFromBubble(bubbleWrapper);
+            String context = (selected != null && !selected.isBlank()) ? selected : fullText;
+            insertInlineQuestion(new SelectedLineContext(context, bubbleWrapper, bubbleWrapper, null));
+        });
+
+        contextMenu.getItems().addAll(copyItem, new SeparatorMenuItem(), askItem);
+        contextMenu.getStyleClass().add("bubble-context-menu");
+
+        // Event filter intercepts context-menu requests before child TextAreas handle them
+        bubbleWrapper.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> {
+            contextMenu.show(bubbleWrapper, event.getScreenX(), event.getScreenY());
+            event.consume();
+        });
+        bubbleWrapper.setOnMouseClicked(event -> {
+            if (event.getButton() != MouseButton.SECONDARY) {
+                contextMenu.hide();
+            }
+        });
+    }
+
+    private String getSelectedTextFromBubble(VBox bubbleWrapper) {
+        // Check code block and message text TextAreas for selected text
+        for (Node child : bubbleWrapper.lookupAll("TextArea")) {
+            if (child instanceof TextArea ta) {
+                String selected = ta.getSelectedText();
+                if (selected != null && !selected.isBlank()) return selected;
+            }
+        }
+        return null;
+    }
+
+    private SelectedLineContext getSelectedLineContext(VBox bubbleWrapper) {
+        for (Node child : bubbleWrapper.lookupAll(".message-line-text")) {
+            if (!(child instanceof TextArea selectedArea)) {
+                continue;
+            }
+            String selectedText = selectedArea.getSelectedText();
+            if (selectedText == null || selectedText.isBlank()) {
+                continue;
+            }
+
+            Node lineContainerNode = selectedArea;
+            while (lineContainerNode != null
+                    && (!lineContainerNode.getStyleClass().contains("message-line-container")
+                    || !(lineContainerNode.getParent() instanceof VBox))) {
+                lineContainerNode = lineContainerNode.getParent();
+            }
+
+            if (lineContainerNode != null && lineContainerNode.getParent() instanceof VBox markdownContainer
+                    && markdownContainer.getStyleClass().contains("message-markdown")) {
+                return new SelectedLineContext(selectedText, lineContainerNode, markdownContainer, selectedArea);
+            }
+        }
+        return null;
+    }
+
+    private void insertInlineQuestion(SelectedLineContext selectedContext) {
+        VBox targetContainer = selectedContext.markdownContainer() instanceof VBox v ? v : null;
+        Node selectedLineNode = selectedContext.lineNode();
+        String selectedText = selectedContext.selectedText();
+
+        if (targetContainer == null || selectedLineNode == null) {
+            return;
+        }
+
+        VBox discussionGroup = new VBox(4);
+        discussionGroup.getStyleClass().add("inline-thread-group");
+
+        HBox discussionRow = new HBox(8);
+        discussionRow.getStyleClass().add("inline-discussion-row");
+
+        Region threadLine = new Region();
+        threadLine.getStyleClass().add("inline-thread-line");
+
+        // Build inline discussion container
+        VBox discussion = new VBox(6);
+        discussion.getStyleClass().add("inline-discussion");
+        threadLine.prefHeightProperty().bind(discussion.heightProperty());
+
+        // Quoted selection
+        String displayText = selectedText.length() > 200
+                ? selectedText.substring(0, 197) + "..."
+                : selectedText;
+        Label quote = new Label("\u201C " + displayText + " \u201D");
+        quote.setWrapText(true);
+        quote.setMaxWidth(500);
+        quote.getStyleClass().add("inline-discussion-quote");
+
+        Button collapseThreadBtn = new Button("\u2212");
+        collapseThreadBtn.getStyleClass().add("inline-discussion-collapse-btn");
+        collapseThreadBtn.setFocusTraversable(false);
+
+        HBox headerRow = new HBox(8, quote, new Region(), collapseThreadBtn);
+        HBox.setHgrow(headerRow.getChildren().get(1), Priority.ALWAYS);
+
+        // Question input
+        TextField questionField = new TextField();
+        questionField.setPromptText("Ask about this...");
+        questionField.getStyleClass().add("inline-discussion-input");
+        questionField.setMaxWidth(500);
+
+        // Answer container (initially empty)
+        VBox answerBox = new VBox(4);
+        answerBox.getStyleClass().add("inline-discussion-answer");
+
+        discussion.getChildren().addAll(headerRow, questionField, answerBox);
+
+        Label collapsedPlaceholder = new Label("...");
+        collapsedPlaceholder.getStyleClass().add("inline-thread-placeholder");
+        collapsedPlaceholder.setVisible(false);
+        collapsedPlaceholder.setManaged(false);
+
+        collapseThreadBtn.setOnAction(e -> {
+            discussionRow.setVisible(false);
+            discussionRow.setManaged(false);
+            collapsedPlaceholder.setVisible(true);
+            collapsedPlaceholder.setManaged(true);
+        });
+
+        collapsedPlaceholder.setOnMouseClicked(e -> {
+            discussionRow.setVisible(true);
+            discussionRow.setManaged(true);
+            collapsedPlaceholder.setVisible(false);
+            collapsedPlaceholder.setManaged(false);
+        });
+
+        discussionRow.getChildren().addAll(threadLine, discussion);
+        discussionGroup.getChildren().addAll(discussionRow, collapsedPlaceholder);
+
+        // Submit on Enter
+        questionField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER && !questionField.getText().isBlank()) {
+                String question = questionField.getText().trim();
+                questionField.setEditable(false);
+                questionField.setOpacity(0.7);
+                submitInlineQuestion(selectedText, question, answerBox);
+                event.consume();
+            } else if (event.getCode() == KeyCode.ESCAPE) {
+                // Remove the discussion if user presses Escape without asking
+                targetContainer.getChildren().remove(discussionGroup);
+                event.consume();
+            }
+        });
+
+        int lineIndex = targetContainer.getChildren().indexOf(selectedLineNode);
+        int insertIndex = lineIndex >= 0 ? lineIndex + 1 : targetContainer.getChildren().size();
+        targetContainer.getChildren().add(insertIndex, discussionGroup);
+
+        // Focus and fade in
+        discussionGroup.setOpacity(0);
+        FadeTransition ft = new FadeTransition(Duration.millis(200), discussionGroup);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.play();
+        scrollToBottom();
+    }
+
+    private record SelectedLineContext(String selectedText, Node lineNode, Node markdownContainer, TextArea selectedArea) {}
+
+    private void submitInlineQuestion(String selectedText, String question, VBox answerBox) {
+        // Show loading indicator
+        Label loading = new Label("Cortex is thinking...");
+        loading.getStyleClass().addAll("inline-discussion-loading");
+        answerBox.getChildren().setAll(loading);
+
+        chatService.askAboutSelection(selectedText, question)
+                .whenComplete((answer, error) -> Platform.runLater(() -> {
+                    answerBox.getChildren().clear();
+                    String content = error != null
+                            ? "Could not generate a response: " + error.getMessage()
+                            : (answer != null ? answer : "No response.");
+
+                    // Build answer content
+                    Node answerContent = buildMessageContent(content);
+                    VBox answerBody = new VBox(answerContent);
+                    answerBody.getStyleClass().add("inline-discussion-answer-body");
+
+                    // Collapse placeholder
+                    Label collapsePlaceholder = new Label("\u22EF");
+                    collapsePlaceholder.getStyleClass().add("inline-discussion-collapsed");
+                    collapsePlaceholder.setVisible(false);
+                    collapsePlaceholder.setManaged(false);
+
+                    // Toggle collapse button
+                    Button collapseBtn = new Button("\u25B2");
+                    collapseBtn.getStyleClass().add("inline-discussion-collapse-btn");
+                    collapseBtn.setFocusTraversable(false);
+                    collapseBtn.setOnAction(e -> {
+                        boolean visible = answerBody.isVisible();
+                        answerBody.setVisible(!visible);
+                        answerBody.setManaged(!visible);
+                        collapsePlaceholder.setVisible(visible);
+                        collapsePlaceholder.setManaged(visible);
+                        collapseBtn.setText(visible ? "\u25BC" : "\u25B2");
+                    });
+
+                    collapsePlaceholder.setOnMouseClicked(e -> {
+                        answerBody.setVisible(true);
+                        answerBody.setManaged(true);
+                        collapsePlaceholder.setVisible(false);
+                        collapsePlaceholder.setManaged(false);
+                        collapseBtn.setText("\u25B2");
+                    });
+
+                    HBox headerRow = new HBox(6);
+                    headerRow.setAlignment(Pos.CENTER_LEFT);
+                    Label aiLabel = new Label("Cortex");
+                    aiLabel.getStyleClass().add("inline-discussion-ai-label");
+                    Region hSpacer = new Region();
+                    HBox.setHgrow(hSpacer, Priority.ALWAYS);
+                    headerRow.getChildren().addAll(aiLabel, hSpacer, collapseBtn);
+
+                    answerBox.getChildren().addAll(headerRow, answerBody, collapsePlaceholder);
+                }));
     }
 
     private HBox createBubbleSafely(Message msg) {
@@ -505,10 +1058,11 @@ public class ChatController {
     private HBox createPlainTextBubble(Message msg) {
         HBox row = new HBox();
         row.getStyleClass().add("message-row");
+        row.setMaxWidth(Double.MAX_VALUE);
 
         Label content = new Label(msg.getContent() == null ? "" : msg.getContent());
         content.setWrapText(true);
-        content.setMaxWidth(520);
+        applyResponsiveMaxWidth(content);
         content.getStyleClass().add("message-text");
 
         // Add copy button for non-empty messages
@@ -542,6 +1096,7 @@ public class ChatController {
         } else {
             row.setAlignment(Pos.TOP_LEFT);
             bubble.getStyleClass().add("bot-bubble");
+            applyResponsivePrefWidth(bubble);
             row.getChildren().addAll(bubble, spacer);
         }
 
@@ -606,58 +1161,33 @@ public class ChatController {
         return container;
     }
 
-    private VBox createMarkdownBlock(String textValue) {
-        VBox block = new VBox(6);
-        block.getStyleClass().add("message-markdown");
-        String[] lines = textValue.split("\\R", -1);
+    private Node buildCompactUserContent(String content) {
+        String text = content == null ? "" : content;
+        Label label = new Label(text);
+        label.setWrapText(true);
+        label.getStyleClass().add("message-text");
+        applyResponsiveMaxWidth(label);
+        return label;
+    }
 
-        for (String rawLine : lines) {
-            String line = rawLine == null ? "" : rawLine.trim();
-            if (line.isEmpty()) {
-                Region spacer = new Region();
-                spacer.setMinHeight(6);
-                block.getChildren().add(spacer);
-                continue;
-            }
+    private Node createMarkdownBlock(String textValue) {
+        String safeText = textValue == null ? "" : textValue;
+        VBox markdownBlock = new VBox(6);
+        markdownBlock.getStyleClass().add("message-markdown");
+        applyResponsiveMaxWidth(markdownBlock);
+        populateFormattedLines(markdownBlock, safeText);
 
-            Matcher headingMatcher = HEADING_PATTERN.matcher(line);
-            if (headingMatcher.matches()) {
-                int level = headingMatcher.group(1).length();
-                TextFlow headingFlow = createInlineTextFlow(headingMatcher.group(2));
-                headingFlow.getStyleClass().add("message-heading");
-                headingFlow.getStyleClass().add("message-heading-" + level);
-                block.getChildren().add(headingFlow);
-                continue;
-            }
-
-            Matcher orderedMatcher = ORDERED_LIST_PATTERN.matcher(line);
-            if (orderedMatcher.matches()) {
-                TextFlow orderedFlow = createInlineTextFlow(orderedMatcher.group(2));
-                orderedFlow.getStyleClass().add("message-list-item");
-                orderedFlow.getChildren().add(0, createStyledText(orderedMatcher.group(1) + ". ", "message-list-marker"));
-                block.getChildren().add(orderedFlow);
-                continue;
-            }
-
-            Matcher unorderedMatcher = UNORDERED_LIST_PATTERN.matcher(line);
-            if (unorderedMatcher.matches()) {
-                TextFlow unorderedFlow = createInlineTextFlow(unorderedMatcher.group(1));
-                unorderedFlow.getStyleClass().add("message-list-item");
-                unorderedFlow.getChildren().add(0, createStyledText("- ", "message-list-marker"));
-                block.getChildren().add(unorderedFlow);
-                continue;
-            }
-
-            block.getChildren().add(createInlineTextFlow(line));
+        if (markdownBlock.getChildren().isEmpty()) {
+            TextFlow empty = createInlineTextFlow(" ");
+            markdownBlock.getChildren().add(empty);
         }
-
-        return block;
+        return markdownBlock;
     }
 
     private TextFlow createInlineTextFlow(String textValue) {
         String safeText = textValue == null ? "" : textValue;
         TextFlow flow = new TextFlow();
-        flow.setMaxWidth(520);
+        applyResponsiveMaxWidth(flow);
         flow.getStyleClass().add("message-flow");
 
         Matcher matcher = INLINE_MARKDOWN_PATTERN.matcher(safeText);
@@ -728,10 +1258,40 @@ public class ChatController {
         codeArea.setFocusTraversable(false);
         codeArea.setPrefRowCount(Math.max(3, code.lines().toList().size()));
         codeArea.getStyleClass().add("message-code");
+        applyResponsiveMaxWidth(codeArea);
 
         VBox codeBox = new VBox(6, header, codeArea);
         codeBox.getStyleClass().add("message-code-block");
+        applyResponsiveMaxWidth(codeBox);
         return codeBox;
+    }
+
+    private double computeMessageMaxWidth() {
+        if (messageBox == null) {
+            return 520;
+        }
+        double preferred = messageBox.getWidth() * MESSAGE_WIDTH_RATIO;
+        return Math.max(MESSAGE_MIN_WIDTH, Math.min(MESSAGE_MAX_WIDTH_CAP, preferred));
+    }
+
+    private void applyResponsiveMaxWidth(Region node) {
+        if (node == null || messageBox == null) {
+            return;
+        }
+        node.maxWidthProperty().bind(Bindings.createDoubleBinding(
+                this::computeMessageMaxWidth,
+                messageBox.widthProperty()
+        ));
+    }
+
+    private void applyResponsivePrefWidth(Region node) {
+        if (node == null || messageBox == null) {
+            return;
+        }
+        node.prefWidthProperty().bind(Bindings.createDoubleBinding(
+                this::computeMessageMaxWidth,
+                messageBox.widthProperty()
+        ));
     }
 
     private void copyCodeToClipboard(String code) {
@@ -748,13 +1308,13 @@ public class ChatController {
             return;
         }
 
-        String normalizedLanguage = normalizeLanguage(language);
-        if (!isRunnableLanguage(normalizedLanguage)) {
+        String normalizedLanguage = langConfigService.normalizeLanguage(language);
+        if (!langConfigService.isRunnable(normalizedLanguage)) {
             setTerminalStatus("Unsupported language");
             appendTerminalLine("[Run] Language '" + normalizedLanguage + "' is not supported.");
             return;
         }
-        if (!isRuntimeAvailableForLanguage(normalizedLanguage)) {
+        if (!langConfigService.isRuntimeAvailable(normalizedLanguage)) {
             setTerminalStatus("Runtime missing");
             appendTerminalLine("[Run] Runtime for '" + normalizedLanguage + "' is not installed.");
             runButton.setDisable(true);
@@ -769,11 +1329,16 @@ public class ChatController {
         RunningExecution execution = new RunningExecution(normalizedLanguage, runButton, stopButton);
         activeExecution = execution;
         updateExecutionControls(execution, true);
-        setTerminalStatus("Running " + normalizedLanguage + "...");
-        appendTerminalLine("[Run] Executing " + normalizedLanguage + " snippet...");
+
+        LanguageConfigService.LanguageEntry langEntry = langConfigService.getLanguage(normalizedLanguage);
+        String displayName = langEntry != null ? langEntry.getDisplayName() : normalizedLanguage;
+        setTerminalStatus("Running " + displayName + "...");
+
+        CodeExecutionService.ExecutionHandle handle = new CodeExecutionService.ExecutionHandle();
+        execution.executionHandle = handle;
 
         CompletableFuture
-                .supplyAsync(() -> executeSnippet(normalizedLanguage, code, execution))
+                .supplyAsync(() -> codeExecutionService.execute(normalizedLanguage, code, handle))
                 .whenComplete((result, error) -> Platform.runLater(() -> {
                     try {
                         if (error != null) {
@@ -782,13 +1347,10 @@ public class ChatController {
                             return;
                         }
 
-                        if (result != null && !result.streamed() && result.output() != null && !result.output().isBlank()) {
-                            appendTerminalLine(result.output().stripTrailing());
-                        }
-
                         int exitCode = result == null ? -1 : result.exitCode();
-                        appendTerminalLine("[Exit code] " + exitCode);
-                        if (execution.stopRequestedByUser) {
+                        if (handle.timedOut) {
+                            setTerminalStatus("Run timed out");
+                        } else if (execution.stopRequestedByUser) {
                             appendTerminalLine("[Run] Execution stopped by user.");
                             setTerminalStatus("Run stopped");
                         } else {
@@ -804,313 +1366,20 @@ public class ChatController {
                 }));
     }
 
-    private RunResult executeSnippet(String language, String code, RunningExecution execution) {
-        try {
-            return switch (language) {
-                case "python" -> runWithInterpreter(code, ".py", resolvePythonCommand(), "Python", execution);
-                case "javascript" -> runWithInterpreter(code, ".js", resolveNodeCommand(), "Node.js", execution);
-                case "powershell" -> runWithInterpreter(code, ".ps1", resolvePowerShellCommand(), "PowerShell", execution);
-                case "bash" -> runWithInterpreter(code, ".sh", resolveBashCommand(), "Bash", execution);
-                case "c" -> runCSnippet(code, false, execution);
-                case "cpp" -> runCSnippet(code, true, execution);
-                case "java" -> runJavaSnippet(code, execution);
-                default -> new RunResult(-1, "[Run] Unsupported language: " + language, false);
-            };
-        } catch (Exception ex) {
-            return new RunResult(-1, "[Run] Failed: " + ex.getMessage(), false);
-        }
-    }
-
-    private RunResult runWithInterpreter(String code, String extension, List<String> commandPrefix, String runtimeName, RunningExecution execution)
-            throws IOException, InterruptedException {
-        if (commandPrefix == null || commandPrefix.isEmpty()) {
-            return new RunResult(-1, "[Run] " + runtimeName + " is not installed on this system.", false);
-        }
-
-        Path tempDir = Files.createTempDirectory("chat-run-");
-        try {
-            Path scriptFile = tempDir.resolve("snippet" + extension);
-            Files.writeString(scriptFile, code, StandardCharsets.UTF_8);
-
-            List<String> command = new ArrayList<>(commandPrefix);
-            command.add(scriptFile.toAbsolutePath().toString());
-            return runProcess(command, tempDir, execution);
-        } finally {
-            deleteDirectoryQuietly(tempDir);
-        }
-    }
-
-    private RunResult runJavaSnippet(String code, RunningExecution execution) throws IOException, InterruptedException {
-        if (!isCommandAvailable("javac") || !isCommandAvailable("java")) {
-            return new RunResult(-1, "[Run] Java runtime/compiler (java/javac) is not installed on this system.", false);
-        }
-
-        Path tempDir = Files.createTempDirectory("chat-java-run-");
-        try {
-            String source = code;
-            String className = extractJavaClassName(code);
-
-            if (className == null) {
-                className = "SnippetMain";
-                source = "public class " + className + " {\n"
-                        + "    public static void main(String[] args) {\n"
-                        + code.indent(8)
-                        + "    }\n"
-                        + "}\n";
-            }
-
-            Path sourceFile = tempDir.resolve(className + ".java");
-            Files.writeString(sourceFile, source, StandardCharsets.UTF_8);
-
-            RunResult compileResult = runProcess(List.of("javac", sourceFile.toAbsolutePath().toString()), tempDir, execution);
-            if (compileResult.exitCode() != 0) {
-                appendTerminalLine("[Compile] Java compilation failed.");
-                return new RunResult(compileResult.exitCode(), "", true);
-            }
-
-            return runProcess(List.of("java", "-cp", tempDir.toAbsolutePath().toString(), className), tempDir, execution);
-        } finally {
-            deleteDirectoryQuietly(tempDir);
-        }
-    }
-
-    private RunResult runCSnippet(String code, boolean isCpp, RunningExecution execution) throws IOException, InterruptedException {
-        List<String> compilerCommand = isCpp ? resolveCppCompiler() : resolveCCompiler();
-        String langLabel = isCpp ? "C++" : "C";
-        String compilerList = isCpp ? "g++/clang++/cl" : "gcc/clang/cc/tcc";
-        
-        if (compilerCommand == null || compilerCommand.isEmpty()) {
-            return new RunResult(-1, "[Run] " + langLabel + " compiler is not installed on this system (" + compilerList + ").", false);
-        }
-
-        Path tempDir = Files.createTempDirectory("chat-" + (isCpp ? "cpp" : "c") + "-run-");
-        try {
-            String sourceExt = isCpp ? ".cpp" : ".c";
-            Path sourceFile = tempDir.resolve("snippet" + sourceExt);
-            Path binaryFile = tempDir.resolve(isWindows() ? "snippet.exe" : "snippet.out");
-            Files.writeString(sourceFile, code, StandardCharsets.UTF_8);
-
-            List<String> compileCommand = new ArrayList<>(compilerCommand);
-            
-            // Add compiler-specific output flags
-            if (!compileCommand.isEmpty()) {
-                String compiler = compileCommand.get(0).toLowerCase();
-                if (compiler.equals("cl")) {
-                    // MSVC: cl source.c /Fe:output.exe
-                    compileCommand.add("/Fe:" + binaryFile.toAbsolutePath());
-                    compileCommand.add(sourceFile.toAbsolutePath().toString());
-                } else {
-                    // GCC/Clang: g++ source.cpp -o output
-                    compileCommand.add(sourceFile.toAbsolutePath().toString());
-                    compileCommand.add("-o");
-                    compileCommand.add(binaryFile.toAbsolutePath().toString());
-                }
-            }
-
-            RunResult compileResult = runProcess(compileCommand, tempDir, execution);
-            if (compileResult.exitCode() != 0) {
-                appendTerminalLine("[Compile] " + langLabel + " compilation failed.");
-                return new RunResult(compileResult.exitCode(), "", true);
-            }
-
-            return runProcess(List.of(binaryFile.toAbsolutePath().toString()), tempDir, execution);
-        } finally {
-            deleteDirectoryQuietly(tempDir);
-        }
-    }
-
-    private RunResult runProcess(List<String> command, Path workingDirectory, RunningExecution execution)
-            throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder(command);
-        builder.directory(workingDirectory.toFile());
-        builder.redirectErrorStream(true);
-
-        Process process = builder.start();
-        execution.process = process;
-        execution.processInput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
-
-        CompletableFuture<Void> outputPump = CompletableFuture.runAsync(() -> {
-            try (InputStreamReader reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
-                char[] buffer = new char[4096];
-                int read;
-                while ((read = reader.read(buffer)) != -1) {
-                    appendTerminalRaw(new String(buffer, 0, read));
-                }
-            } catch (IOException ex) {
-                if (!execution.cancelRequested && ex.getMessage() != null && !ex.getMessage().isBlank()) {
-                    appendTerminalLine("[Run] Output stream closed: " + ex.getMessage());
-                }
-            }
-        });
-
-        while (true) {
-            if (execution.cancelRequested) {
-                process.destroyForcibly();
-                break;
-            }
-            if (process.waitFor(120, TimeUnit.MILLISECONDS)) {
-                break;
-            }
-        }
-
-        process.waitFor(2, TimeUnit.SECONDS);
-        outputPump.join();
-        BufferedWriter processInput = execution.processInput;
-        if (processInput != null) {
-            try {
-                processInput.close();
-            } catch (IOException ignored) {
-                // Best-effort close for process stdin.
-            }
-        }
-        execution.processInput = null;
-        execution.process = null;
-
-        if (execution.cancelRequested) {
-            return new RunResult(-1, "", true);
-        }
-        return new RunResult(process.isAlive() ? -1 : process.exitValue(), "", true);
-    }
-
-    private String extractJavaClassName(String code) {
-        Matcher publicMatcher = PUBLIC_CLASS_PATTERN.matcher(code);
-        if (publicMatcher.find()) {
-            return publicMatcher.group(1);
-        }
-        Matcher classMatcher = CLASS_PATTERN.matcher(code);
-        if (classMatcher.find()) {
-            return classMatcher.group(1);
-        }
-        return null;
-    }
-
     private String normalizeLanguage(String language) {
-        String normalized = language == null ? "text" : language.trim().toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "", "txt", "text", "plaintext" -> "text";
-            case "py" -> "python";
-            case "js", "node", "nodejs" -> "javascript";
-            case "ps", "ps1", "pwsh" -> "powershell";
-            case "shell", "sh", "zsh" -> "bash";
-            case "c89", "c90", "c99", "c11", "c17", "c18" -> "c";
-            case "cpp", "c++", "cc", "cxx", "c++11", "c++14", "c++17", "c++20", "c++23" -> "cpp";
-            default -> normalized;
-        };
+        return langConfigService.normalizeLanguage(language);
     }
 
-    private boolean isRunnableLanguage(String language) {
-        return switch (language) {
-            case "python", "javascript", "java", "powershell", "bash", "c", "cpp" -> true;
-            default -> false;
-        };
+    private boolean isRunnableLanguage(String normalizedLanguage) {
+        return langConfigService.isRunnable(normalizedLanguage);
     }
 
-    private boolean isRuntimeAvailableForLanguage(String language) {
-        if (!isRunnableLanguage(language)) {
-            return false;
-        }
-        return runtimeAvailabilityCache.computeIfAbsent(language, this::detectRuntimeForLanguage);
-    }
-
-    private boolean detectRuntimeForLanguage(String language) {
-        return switch (language) {
-            case "python" -> resolvePythonCommand() != null;
-            case "javascript" -> resolveNodeCommand() != null;
-            case "powershell" -> resolvePowerShellCommand() != null;
-            case "bash" -> resolveBashCommand() != null;
-            case "c" -> resolveCCompiler() != null;
-            case "cpp" -> resolveCppCompiler() != null;
-            case "java" -> isCommandAvailable("javac") && isCommandAvailable("java");
-            default -> false;
-        };
-    }
-
-    private List<String> resolvePythonCommand() {
-        if (isCommandAvailable("python")) {
-            return List.of("python");
-        }
-        if (isCommandAvailable("py")) {
-            return List.of("py", "-3");
-        }
-        if (isCommandAvailable("python3")) {
-            return List.of("python3");
-        }
-        return null;
-    }
-
-    private List<String> resolveNodeCommand() {
-        return isCommandAvailable("node") ? List.of("node") : null;
-    }
-
-    private List<String> resolvePowerShellCommand() {
-        if (isCommandAvailable("pwsh")) {
-            return List.of("pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File");
-        }
-        if (isCommandAvailable("powershell")) {
-            return List.of("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File");
-        }
-        return null;
-    }
-
-    private List<String> resolveBashCommand() {
-        return isCommandAvailable("bash") ? List.of("bash") : null;
-    }
-
-    private List<String> resolveCCompiler() {
-        // Try most common compilers first (in order of preference)
-        String[] compilers = isWindows() 
-            ? new String[]{"gcc", "clang", "cl", "tcc", "cc"}
-            : new String[]{"gcc", "clang", "cc", "tcc"};
-        
-        for (String compiler : compilers) {
-            if (isCommandAvailable(compiler)) {
-                return compiler.equals("cl") ? List.of("cl", "/TC") : List.of(compiler);
-            }
-        }
-        return null;
-    }
-
-    private List<String> resolveCppCompiler() {
-        // Try most common C++ compilers first
-        String[] compilers = isWindows()
-            ? new String[]{"g++", "clang++", "cl", "c++", "tcc"}
-            : new String[]{"g++", "clang++", "c++", "tcc"};
-        
-        for (String compiler : compilers) {
-            if (isCommandAvailable(compiler)) {
-                return compiler.equals("cl") ? List.of("cl", "/TP") : List.of(compiler);
-            }
-        }
-        
-        // Fallback to C compiler for C++ if g++/clang++ not available
-        List<String> cCompiler = resolveCCompiler();
-        return cCompiler != null && (cCompiler.contains("gcc") || cCompiler.contains("clang") || cCompiler.contains("cc")) 
-            ? cCompiler 
-            : null;
+    private boolean isRuntimeAvailableForLanguage(String normalizedLanguage) {
+        return langConfigService.isRuntimeAvailable(normalizedLanguage);
     }
 
     private boolean isCommandAvailable(String commandName) {
-        if (commandName == null || commandName.isBlank()) {
-            return false;
-        }
-        // Use cache to avoid repeated slow probes
-        return commandAvailabilityCache.computeIfAbsent(commandName, cmd -> {
-            List<String> probe = isWindows()
-                    ? List.of("cmd", "/c", "where", cmd)
-                    : List.of("sh", "-lc", "command -v " + cmd);
-            try {
-                Process process = new ProcessBuilder(probe).redirectErrorStream(true).start();
-                // Use shorter timeout (2 seconds instead of 5) for faster detection
-                boolean finished = process.waitFor(2, TimeUnit.SECONDS);
-                if (!finished) {
-                    process.destroyForcibly();
-                    return false;
-                }
-                return process.exitValue() == 0;
-            } catch (Exception ex) {
-                return false;
-            }
-        });
+        return langConfigService.isCommandAvailable(commandName);
     }
 
     private boolean isWindows() {
@@ -1253,17 +1522,113 @@ public class ChatController {
 
     private RunResult runShellCommand(String command, RunningExecution execution) {
         try {
+            String shellPref = settingsManager.getString("terminal.defaultShell", "Cortex").trim().toLowerCase(Locale.ROOT);
+            if (isWindows() && ("cmd".equals(shellPref) || "powershell".equals(shellPref))) {
+                boolean launched = launchExternalShellWindow(shellPref, command);
+                if (!launched) {
+                    return new RunResult(-1, "[Run] Failed to open external " + shellPref + " window.", false);
+                }
+                return new RunResult(0, "[Run] Opened command in external " + shellPref + " window.", false);
+            }
+
             List<String> shellCommand = buildDefaultShellCommand(command);
             if (shellCommand == null || shellCommand.isEmpty()) {
                 return new RunResult(-1, "[Run] No default shell is available on this system.", false);
             }
-            return runProcess(shellCommand, terminalWorkingDirectory, execution);
+            return runShellProcess(shellCommand, terminalWorkingDirectory, execution);
         } catch (Exception ex) {
             return new RunResult(-1, "[Run] Failed to execute command: " + ex.getMessage(), false);
         }
     }
 
+    private boolean launchExternalShellWindow(String shell, String command) {
+        try {
+            List<String> launch;
+            if ("cmd".equals(shell)) {
+                launch = List.of("cmd", "/c", "start", "\"Cortex CMD\"", "cmd", "/k", command);
+            } else {
+                launch = List.of("cmd", "/c", "start", "\"Cortex PowerShell\"", "powershell", "-NoExit", "-Command", command);
+            }
+            ProcessBuilder builder = new ProcessBuilder(launch);
+            builder.directory(terminalWorkingDirectory.toFile());
+            builder.start();
+            return true;
+        } catch (Exception ex) {
+            appendTerminalLine("[Run] Could not open external shell window: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private RunResult runShellProcess(List<String> command, Path workingDirectory, RunningExecution execution)
+            throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.directory(workingDirectory.toFile());
+        builder.redirectErrorStream(true);
+
+        Process process = builder.start();
+        execution.process = process;
+        execution.processInput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
+
+        CompletableFuture<Void> outputPump = CompletableFuture.runAsync(() -> {
+            try (InputStreamReader reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
+                char[] buffer = new char[4096];
+                int read;
+                while ((read = reader.read(buffer)) != -1) {
+                    appendTerminalRaw(new String(buffer, 0, read));
+                }
+            } catch (IOException ex) {
+                if (!execution.cancelRequested && ex.getMessage() != null && !ex.getMessage().isBlank()) {
+                    appendTerminalLine("[Run] Output stream closed: " + ex.getMessage());
+                }
+            }
+        });
+
+        while (true) {
+            if (execution.cancelRequested) {
+                process.destroyForcibly();
+                break;
+            }
+            if (process.waitFor(120, TimeUnit.MILLISECONDS)) {
+                break;
+            }
+        }
+
+        process.waitFor(2, TimeUnit.SECONDS);
+        outputPump.join();
+        BufferedWriter pInput = execution.processInput;
+        if (pInput != null) {
+            try { pInput.close(); } catch (IOException ignored) { }
+        }
+        execution.processInput = null;
+        execution.process = null;
+
+        if (execution.cancelRequested) {
+            return new RunResult(-1, "", true);
+        }
+        return new RunResult(process.isAlive() ? -1 : process.exitValue(), "", true);
+    }
+
     private List<String> buildDefaultShellCommand(String command) {
+        String shellPref = settingsManager.getString("terminal.defaultShell", "Cortex").trim().toLowerCase(Locale.ROOT);
+
+        return switch (shellPref) {
+            case "cmd" -> isWindows() ? List.of("cmd", "/c", command) : buildAutoShellCommand(command);
+            case "powershell" -> {
+                if (isCommandAvailable("pwsh")) {
+                    yield List.of("pwsh", "-NoProfile", "-Command", command);
+                }
+                if (isCommandAvailable("powershell")) {
+                    yield List.of("powershell", "-NoProfile", "-Command", command);
+                }
+                yield buildAutoShellCommand(command);
+            }
+            case "bash" -> isCommandAvailable("bash") ? List.of("bash", "-lc", command) : buildAutoShellCommand(command);
+            case "cortex" -> buildAutoShellCommand(command);
+            default -> buildAutoShellCommand(command);
+        };
+    }
+
+    private List<String> buildAutoShellCommand(String command) {
         if (isWindows()) {
             if (isCommandAvailable("pwsh")) {
                 return List.of("pwsh", "-NoProfile", "-Command", command);
@@ -1719,6 +2084,7 @@ public class ChatController {
         private volatile BufferedWriter processInput;
         private volatile boolean cancelRequested;
         private volatile boolean stopRequestedByUser;
+        private volatile CodeExecutionService.ExecutionHandle executionHandle;
 
         private RunningExecution(String language, Button runButton, Button stopButton) {
             this.language = language;
@@ -1736,6 +2102,62 @@ public class ChatController {
     }
 
     // ================= EXPORT METHODS =================
+    @FXML
+    private void copyAsMarkdown() {
+        if (conversation == null || conversation.getMessages().isEmpty()) {
+            showNotification("Nothing to copy");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("# ").append(conversation.getTitle()).append("\n\n");
+        for (Message msg : conversation.getMessages()) {
+            String sender = msg.getSender() == Message.Sender.USER ? "👤 User" : "🤖 Cortex";
+            sb.append("## ").append(sender).append("\n\n");
+            sb.append(msg.getContent()).append("\n\n---\n\n");
+        }
+        ClipboardContent cc = new ClipboardContent();
+        cc.putString(sb.toString());
+        Clipboard.getSystemClipboard().setContent(cc);
+        showNotification("\u2713 Chat copied as Markdown");
+    }
+
+    @FXML
+    private void copyAsText() {
+        if (conversation == null || conversation.getMessages().isEmpty()) {
+            showNotification("Nothing to copy");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Message msg : conversation.getMessages()) {
+            String sender = msg.getSender() == Message.Sender.USER ? "USER" : "CORTEX";
+            sb.append(sender).append(":\n").append(msg.getContent()).append("\n\n");
+        }
+        ClipboardContent cc = new ClipboardContent();
+        cc.putString(sb.toString());
+        Clipboard.getSystemClipboard().setContent(cc);
+        showNotification("\u2713 Chat copied as text");
+    }
+
+    @FXML
+    private void screenshotToClipboard() {
+        if (messageBox == null || messageBox.getChildren().isEmpty()) {
+            showNotification("Nothing to capture");
+            return;
+        }
+        try {
+            javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+            params.setFill(javafx.scene.paint.Color.TRANSPARENT);
+            // Snapshot the full message list
+            javafx.scene.image.WritableImage snapshot = messageBox.snapshot(params, null);
+            ClipboardContent cc = new ClipboardContent();
+            cc.putImage(snapshot);
+            Clipboard.getSystemClipboard().setContent(cc);
+            showNotification("\u2713 Chat screenshot copied to clipboard");
+        } catch (Exception ex) {
+            showNotification("\u2717 Screenshot failed: " + ex.getMessage());
+        }
+    }
+
     @FXML
     private void exportAsText() {
         if (conversation == null || conversation.getMessages().isEmpty()) {
