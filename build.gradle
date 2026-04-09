@@ -5,18 +5,27 @@ plugins {
 
 defaultTasks 'run'
 
+def targetJavaVersion = 25
+
 repositories {
     mavenCentral()
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
 }
 
 def currentOs = org.gradle.internal.os.OperatingSystem.current()
 def javafxPlatform = (findProperty('javafxPlatform')
     ?: (currentOs.windows ? 'win' : currentOs.macOsX ? 'mac' : 'linux')).toString()
+def java25Launcher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+}
+def java25Metadata = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+}.map { it.metadata }
 
 application {
     mainClass = 'com.example.chatbot.CortexLauncher'
@@ -47,6 +56,21 @@ run {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = targetJavaVersion
+}
+
+tasks.withType(JavaExec).configureEach {
+    javaLauncher = java25Launcher
+}
+
+tasks.withType(Test).configureEach {
+    javaLauncher = java25Launcher
+}
+
+tasks.withType(Javadoc).configureEach {
+    javadocTool = javaToolchains.javadocToolFor {
+        languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
 }
 
 
@@ -85,7 +109,7 @@ def jarTask = tasks.named('jar', Jar)
 
 def jpackageExecutable = providers.provider {
     def binaryName = isWindows ? 'jpackage.exe' : 'jpackage'
-    new File(System.getProperty('java.home'), "bin/${binaryName}").absolutePath
+    new File(java25Metadata.get().installationPath.asFile, "bin/${binaryName}").absolutePath
 }
 
 def windowsInstallerArgs = { String installerType ->
